@@ -166,30 +166,66 @@
       font-weight: 400;
     }
     
-    /* Reset Button */
-    .reset-button {
+    /* Button Styles */
+    .button {
       padding: 0.6rem 1.2rem;
       border-radius: 8px;
-      border: 2px solid #dc3545;
-      background-color: #dc3545;
-      color: white;
+      border: 2px solid;
       font-size: 0.95rem;
       font-weight: 500;
       cursor: pointer;
       transition: all 0.2s ease;
+    }
+    
+    .button:hover {
+      transform: translateY(-1px);
+    }
+    
+    .button:active {
+      transform: translateY(0);
+    }
+    
+    /* Reset Filters Button */
+    .reset-button {
+      border-color: #dc3545;
+      background-color: #dc3545;
+      color: white;
       align-self: flex-end;
     }
     
     .reset-button:hover {
       background-color: #c82333;
       border-color: #c82333;
-      transform: translateY(-1px);
       box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
     }
     
     .reset-button:active {
-      transform: translateY(0);
       box-shadow: 0 1px 4px rgba(220, 53, 69, 0.2);
+    }
+    
+    /* Reset Zoom Button */
+    .reset-zoom-button {
+      border-color: #667eea;
+      background-color: #667eea;
+      color: white;
+    }
+    
+    .reset-zoom-button:hover {
+      background-color: #5563d1;
+      border-color: #5563d1;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    }
+    
+    .reset-zoom-button:active {
+      box-shadow: 0 1px 4px rgba(102, 126, 234, 0.2);
+    }
+    
+    /* Button Group */
+    .button-group {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      justify-content: flex-end;
     }
     
     /* Visualization Container */
@@ -318,6 +354,15 @@
         gap: 1rem;
       }
       
+      .button-group {
+        flex-direction: column;
+        width: 100%;
+      }
+      
+      .button {
+        width: 100%;
+      }
+      
       .container {
         padding: 1rem;
       }
@@ -354,7 +399,7 @@
     <div class="header-content">
       <h1>Movie Data Explorer</h1>
       <p>Explore global movie production patterns, ratings, and revenue across countries and time</p>
-      <p style="font-size: 0.9rem; opacity: 0.8; margin-top: 0.5rem;">💡 Tip: Use mouse wheel to zoom and drag to pan the map</p>
+      <p style="font-size: 0.9rem; opacity: 0.8; margin-top: 0.5rem;">💡 Tip: Use mouse wheel to zoom and drag to pan the map. Click "Reset Zoom" to return to the original view.</p>
     </div>
   </header>
 
@@ -419,7 +464,10 @@
         </div>
         
         <div class="control-group">
-          <button id="reset-btn" class="reset-button">Reset Filters</button>
+          <div class="button-group">
+            <button id="reset-zoom-btn" class="button reset-zoom-button">Reset Zoom</button>
+            <button id="reset-btn" class="button reset-button">Reset Filters</button>
+          </div>
         </div>
       </div>
     </section>

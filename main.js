@@ -47,6 +47,7 @@ const votesSlider = document.getElementById('votes-slider');
 const votesValue = document.getElementById('votes-value');
 const metricRadios = document.querySelectorAll('input[name="map-metric"]');
 const resetBtn = document.getElementById('reset-btn');
+const resetZoomBtn = document.getElementById('reset-zoom-btn');
 const tooltip = document.querySelector('.tooltip');
 
 // Summary stat elements
@@ -104,6 +105,10 @@ resetBtn.addEventListener('click', function() {
     // Reprocess and update
     processMovieData();
     updateVisualization();
+});
+
+resetZoomBtn.addEventListener('click', function() {
+    resetZoom();
 });
 
 // Load data
@@ -301,6 +306,15 @@ function updateVisualization() {
     
     // Update legend
     updateLegend(colorScale, maxValue);
+}
+
+// Reset zoom to initial position
+function resetZoom() {
+    if (!svg) return;
+    
+    svg.transition()
+        .duration(750)
+        .call(zoom.transform, d3.zoomIdentity);
 }
 
 // Update summary statistics
