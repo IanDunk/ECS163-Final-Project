@@ -77,7 +77,7 @@
     .control-group {
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
+      gap: 0.75rem;
     }
     
     .control-group label {
@@ -270,6 +270,13 @@
       box-shadow: 0 3px 10px rgba(108, 117, 125, 0.4);
     }
     
+    /* Full Width Button Style */
+    .full-width-button {
+      width: 100%;
+      min-width: auto;
+      margin-top: 0.25rem;
+    }
+    
     /* Button Group */
     .button-group {
       display: flex;
@@ -416,6 +423,11 @@
         min-width: auto;
       }
       
+      .full-width-button {
+        width: 100%;
+        min-width: auto;
+      }
+      
       .container {
         padding: 1rem;
       }
@@ -551,31 +563,17 @@
         </div>
         
         <div class="control-group">
-          <label for="rating-slider">
-            Minimum IMDb Rating: <span class="control-value" id="rating-value">7.0</span>
-          </label>
-          <input type="range" id="rating-slider" min="0" max="10" value="7" step="0.1">
-        </div>
-        
-        <div class="control-group">
-          <label for="min-year-slider">
-            📊 Chart Min Year: <span class="control-value" id="min-year-value">1925</span>
-          </label>
-          <input type="range" id="min-year-slider" min="1925" max="2025" value="1925" step="1">
-        </div>
-        
-        <div class="control-group">
-          <label for="max-year-slider">
-            📊 Chart Max Year: <span class="control-value" id="max-year-value">2025</span>
-          </label>
-          <input type="range" id="max-year-slider" min="1925" max="2025" value="2025" step="1">
-        </div>
-        
-        <div class="control-group">
           <label for="votes-slider">
             Minimum IMDb Votes: <span class="control-value" id="votes-value">10,000</span>
           </label>
           <input type="range" id="votes-slider" min="0" max="100000" value="10000" step="1000">
+        </div>
+        
+        <div class="control-group">
+          <label for="rating-slider">
+            Minimum IMDb Rating: <span class="control-value" id="rating-value">7.0</span>
+          </label>
+          <input type="range" id="rating-slider" min="0" max="10" value="7" step="0.1">
         </div>
         
         <div class="control-group">
@@ -593,12 +591,21 @@
         </div>
         
         <div class="control-group">
-          <div class="button-group">
-            <button id="inflation-btn" class="button inflation-button">Adjust for Inflation</button>
-            <button id="chart-mode-btn" class="button chart-mode-button">Total Revenue per Year</button>
-            <button id="reset-zoom-btn" class="button reset-zoom-button">Reset Zoom</button>
-            <button id="reset-btn" class="button reset-button">Reset Filters</button>
-          </div>
+          <label for="min-year-slider">
+            📊 Chart Min Year: <span class="control-value" id="min-year-value">1925</span>
+          </label>
+          <input type="range" id="min-year-slider" min="1925" max="2025" value="1925" step="1">
+          <button id="inflation-btn" class="button inflation-button full-width-button">Adjust for Inflation</button>
+          <button id="chart-mode-btn" class="button chart-mode-button full-width-button">Total Revenue per Year</button>
+        </div>
+        
+        <div class="control-group">
+          <label for="max-year-slider">
+            📊 Chart Max Year: <span class="control-value" id="max-year-value">2025</span>
+          </label>
+          <input type="range" id="max-year-slider" min="1925" max="2025" value="2025" step="1">
+          <button id="reset-zoom-btn" class="button reset-zoom-button full-width-button">Reset Zoom</button>
+          <button id="reset-btn" class="button reset-button full-width-button">Reset Filters</button>
         </div>
       </div>
     </section>
