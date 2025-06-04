@@ -2,10 +2,10 @@
 # Movie Data Explorer
 
 # Group Members - Team 14:
-Ian Dunk
-Saul Duran
-Gabriel Figueroa
-Alexander Fraties
+Ian Dunk,
+Saul Duran,
+Gabriel Figueroa,
+Alexander Fraties,
 Brian Varona
 
 # Deployed Webpage Link
