@@ -750,6 +750,7 @@ function createLineChart() {
     trendLine = d3.line()
         .x(d => lineX(d.year))
         .y(d => lineY(d.revenue));
+        //.y(d => lineY(Math.max(0, d.revenue)));
     
     // Add grid lines
     lineChartG.append("g")
@@ -787,8 +788,8 @@ function createLineChart() {
         .attr("class", "axis-label y-axis-label")
         .attr("text-anchor", "middle")
         .attr("transform", "rotate(-90)")
-        .attr("x", -innerHeight / 2)
-        .attr("y", -55)
+        .attr("x", -innerHeight / 2 )
+        .attr("y", -60)
         .text("Average Revenue per Movie ($)");
     
     // Add line path
@@ -812,33 +813,33 @@ function createLineChart() {
     
     // Data line legend
     legend.append("line")
-        .attr("x1", 0)
-        .attr("x2", 20)
-        .attr("y1", 0)
-        .attr("y2", 0)
+        .attr("x1", 75)
+        .attr("x2", 95)
+        .attr("y1", -30)
+        .attr("y2", -30)
         .attr("stroke", "#667eea")
         .attr("stroke-width", 2);
     
     legend.append("text")
-        .attr("x", 25)
-        .attr("y", 4)
+        .attr("x", 100)
+        .attr("y", -25)
         .style("font-size", "12px")
         .style("fill", "#495057")
         .text("Data");
     
     // Trend line legend
     legend.append("line")
-        .attr("x1", 0)
-        .attr("x2", 20)
-        .attr("y1", 15)
-        .attr("y2", 15)
+        .attr("x1", 75)
+        .attr("x2", 95)
+        .attr("y1", -10)
+        .attr("y2", -10)
         .attr("stroke", "#e74c3c")
         .attr("stroke-width", 2)
         .attr("stroke-dasharray", "5,5");
     
     legend.append("text")
-        .attr("x", 25)
-        .attr("y", 19)
+        .attr("x", 100)
+        .attr("y", -5)
         .style("font-size", "12px")
         .style("fill", "#495057")
         .text("Trend");
@@ -1071,8 +1072,15 @@ function updateLineChart() {
             { year: xDomainMax, revenue: regression.slope * xDomainMax + regression.intercept }
         ];
         
+        //created new const to stop trendline from dipping below x axis
+        const positiveTrendData = trendData.map(d=> ({
+            ...d,
+            revenue: Math.max(0, d.revenue)
+        }));
+
         lineChartG.select(".trend-line")
-            .datum(trendData)
+            .datum(positiveTrendData)
+            //.datum(trendData)
             .transition()
             .duration(500)
             .attr("d", trendLine);
