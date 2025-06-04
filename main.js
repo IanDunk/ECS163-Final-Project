@@ -184,6 +184,12 @@ resetBtn.addEventListener('click', function() {
         lineChartG.select('.y-axis-label').text('Average Revenue per Movie ($)');
     }
     
+    // Update the total revenue label back to default
+    const totalRevenueLabel = document.querySelector('#total-revenue').parentElement.querySelector('.stat-label');
+    if (totalRevenueLabel) {
+        totalRevenueLabel.textContent = 'Total Revenue';
+    }
+    
     // Reprocess and update
     processMovieData();
     updateVisualization();
@@ -224,7 +230,11 @@ inflationBtn.addEventListener('click', function() {
         lineChartG.select('.y-axis-label').text(yAxisLabel);
     }
     
-    // Recalculate and update line chart
+    // Reprocess all data with new inflation setting
+    processMovieData();
+    
+    // Update all visualizations
+    updateVisualization();
     updateLineChart();
 });
 
@@ -364,6 +374,11 @@ function processMovieData() {
             revenue = parseFloat(cleanedRevenue) || 0;
         }
         
+        // Apply inflation adjustment if enabled
+        if (adjustForInflation && revenue > 0) {
+            revenue = adjustForInflationAmount(revenue, year);
+        }
+        
         // Parse countries (the countries_origin field appears to be a string representation of an array)
         let countries;
         try {
@@ -447,8 +462,8 @@ function createMap() {
         .append("path")
         .attr("d", path)
         .attr("class", "country")
-        .attr("stroke", d => d.properties.name === selectedCountry ? "#667eea" : "#333")
-        .attr("stroke-width", d => d.properties.name === selectedCountry ? 3 : 0.5)
+        .attr("stroke", "#333")
+        .attr("stroke-width", 0.5)
         .style("cursor", "pointer")
         .on("click", handleCountryClick)
         .on("mouseover", handleMouseOver)
@@ -495,12 +510,6 @@ function updateVisualization() {
                 }
                 return "#eee";
             }
-        })
-        .attr("stroke-width", function(d) {
-            return d.properties.name === selectedCountry ? 3 : 0.5;
-        })
-        .attr("stroke", function(d) {
-            return d.properties.name === selectedCountry ? "#667eea" : "#333";
         });
     
     // Update legend
@@ -532,9 +541,18 @@ function updateStatistics(data) {
     totalMoviesEl.textContent = totalMovies.toLocaleString();
     totalCountriesEl.textContent = countries.length;
     avgRatingEl.textContent = avgRating.toFixed(1);
-    totalRevenueEl.textContent = totalRevenue > 0 ? 
+    
+    // Update total revenue display with inflation indicator
+    const revenueText = totalRevenue > 0 ? 
         '$' + (totalRevenue / 1e9).toFixed(1) + 'B' : 
         'N/A';
+    totalRevenueEl.textContent = revenueText;
+    
+    // Update the label to show if inflation-adjusted
+    const totalRevenueLabel = document.querySelector('#total-revenue').parentElement.querySelector('.stat-label');
+    if (totalRevenueLabel) {
+        totalRevenueLabel.textContent = adjustForInflation ? 'Total Revenue (2025 $)' : 'Total Revenue';
+    }
 }
 
 // Mouse event handlers
@@ -566,10 +584,12 @@ function handleMouseMove(d) {
                               : revenue >= 1e6 ? (revenue / 1e6).toFixed(1) + 'M'
                               : revenue.toLocaleString();
         }
+        
+        const revenueLabel = adjustForInflation ? "Revenue (2025 $)" : "Revenue";
 
         content += `
             <div class="tooltip-row">Movies: ${count} (${percent}%)</div>
-            <div class="tooltip-row">Revenue: ${revenueDisplay}</div>
+            <div class="tooltip-row">${revenueLabel}: ${revenueDisplay}</div>
             <div class="tooltip-row">Avg IMDb Rating: ${avgRating}</div>
         `;
     }
@@ -596,15 +616,6 @@ function handleCountryClick(d) {
     
     // Update country name in the chart header
     document.getElementById('selected-country').textContent = selectedCountry;
-    
-    // Highlight selected country
-    g.selectAll("path")
-        .attr("stroke-width", function(data) {
-            return data.properties.name === selectedCountry ? 3 : 0.5;
-        })
-        .attr("stroke", function(data) {
-            return data.properties.name === selectedCountry ? "#667eea" : "#333";
-        });
     
     // Update line chart
     updateLineChart();
@@ -697,7 +708,7 @@ function updateLegend(colorScale, maxValue) {
 
 // Line Chart variables
 let lineChartSvg, lineChartG, lineX, lineY, line, trendLine, xAxisLine, yAxisLine;
-const lineMargin = {top: 20, right: 30, bottom: 50, left: 70};
+const lineMargin = {top: 20, right: 30, bottom: 50, left: 80};
 
 // Linear regression calculation
 function calculateLinearRegression(data) {
@@ -750,7 +761,6 @@ function createLineChart() {
     trendLine = d3.line()
         .x(d => lineX(d.year))
         .y(d => lineY(d.revenue));
-        //.y(d => lineY(Math.max(0, d.revenue)));
     
     // Add grid lines
     lineChartG.append("g")
@@ -788,8 +798,8 @@ function createLineChart() {
         .attr("class", "axis-label y-axis-label")
         .attr("text-anchor", "middle")
         .attr("transform", "rotate(-90)")
-        .attr("x", -innerHeight / 2 )
-        .attr("y", -60)
+        .attr("x", -innerHeight / 2)
+        .attr("y", -65)
         .text("Average Revenue per Movie ($)");
     
     // Add line path
@@ -797,10 +807,22 @@ function createLineChart() {
         .attr("class", "line-path")
         .attr("stroke", "#667eea");
     
-    // Add trend line path
+    // Create clipping path for trend line
+    lineChartG.append("defs")
+        .append("clipPath")
+        .attr("id", "trend-line-clip")
+        .append("rect")
+        .attr("x", 0)
+        .attr("y", 0)
+        .attr("width", innerWidth)
+        .attr("height", innerHeight);
+    
+    // Add trend line path with clipping
     lineChartG.append("path")
         .attr("class", "trend-line")
-        .attr("stroke", "#e74c3c");
+        .attr("stroke", "#e74c3c")
+        .attr("stroke-dasharray", "5,5")
+        .attr("clip-path", "url(#trend-line-clip)");
     
     // Add dots group
     lineChartG.append("g")
@@ -809,37 +831,49 @@ function createLineChart() {
     // Add legend for trend line
     const legend = lineChartG.append("g")
         .attr("class", "chart-legend")
-        .attr("transform", `translate(${innerWidth - 150}, 20)`);
+        .attr("transform", `translate(10, 20)`);
+    
+    // Add background for legend
+    legend.append("rect")
+        .attr("x", -5)
+        .attr("y", -10)
+        .attr("width", 85)
+        .attr("height", 35)
+        .attr("fill", "white")
+        .attr("stroke", "#ddd")
+        .attr("stroke-width", 1)
+        .attr("rx", 4)
+        .attr("opacity", 0.9);
     
     // Data line legend
     legend.append("line")
-        .attr("x1", 75)
-        .attr("x2", 95)
-        .attr("y1", -30)
-        .attr("y2", -30)
+        .attr("x1", 0)
+        .attr("x2", 20)
+        .attr("y1", 0)
+        .attr("y2", 0)
         .attr("stroke", "#667eea")
         .attr("stroke-width", 2);
     
     legend.append("text")
-        .attr("x", 100)
-        .attr("y", -25)
+        .attr("x", 25)
+        .attr("y", 4)
         .style("font-size", "12px")
         .style("fill", "#495057")
         .text("Data");
     
     // Trend line legend
     legend.append("line")
-        .attr("x1", 75)
-        .attr("x2", 95)
-        .attr("y1", -10)
-        .attr("y2", -10)
+        .attr("x1", 0)
+        .attr("x2", 20)
+        .attr("y1", 15)
+        .attr("y2", 15)
         .attr("stroke", "#e74c3c")
         .attr("stroke-width", 2)
         .attr("stroke-dasharray", "5,5");
     
     legend.append("text")
-        .attr("x", 100)
-        .attr("y", -5)
+        .attr("x", 25)
+        .attr("y", 19)
         .style("font-size", "12px")
         .style("fill", "#495057")
         .text("Trend");
@@ -1000,6 +1034,11 @@ function updateLineChart() {
         xAxisLine.transition().duration(500)
             .call(d3.axisBottom(lineX).tickFormat(d3.format("d")));
         
+        // Update clipping path for no-data case
+        lineChartG.select("#trend-line-clip rect")
+            .attr("width", innerWidth)
+            .attr("height", lineY(0));
+        
         return;
     }
     
@@ -1040,6 +1079,11 @@ function updateLineChart() {
             return "$" + d.toLocaleString();
         }));
     
+    // Update clipping path to prevent trend line from showing below x-axis
+    lineChartG.select("#trend-line-clip rect")
+        .attr("width", innerWidth)
+        .attr("height", lineY(0)); // Clip at y=0 line
+    
     // Update grid lines to match new axes  
     lineChartG.selectAll(".grid").each(function() {
         const grid = d3.select(this);
@@ -1072,15 +1116,8 @@ function updateLineChart() {
             { year: xDomainMax, revenue: regression.slope * xDomainMax + regression.intercept }
         ];
         
-        //created new const to stop trendline from dipping below x axis
-        const positiveTrendData = trendData.map(d=> ({
-            ...d,
-            revenue: Math.max(0, d.revenue)
-        }));
-
         lineChartG.select(".trend-line")
-            .datum(positiveTrendData)
-            //.datum(trendData)
+            .datum(trendData)
             .transition()
             .duration(500)
             .attr("d", trendLine);
@@ -1190,7 +1227,12 @@ window.addEventListener('resize', debounce(() => {
             .attr("y", innerHeight + 45);
         
         lineChartG.select(".y-axis-label")
-            .attr("x", -innerHeight / 2);
+            .attr("x", -innerHeight / 2)
+            .attr("y", -65);
+        
+        // Update clipping path dimensions for resize
+        lineChartG.select("#trend-line-clip rect")
+            .attr("width", innerWidth);
         
         // Update line and dots
         updateLineChart();
@@ -1209,4 +1251,3 @@ function debounce(func, wait) {
         timeout = setTimeout(later, wait);
     };
 }
-
