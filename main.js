@@ -134,6 +134,8 @@ metricRadios.forEach(radio => {
         if (this.checked) {
             mapMetric = this.value;
             updateVisualization();
+            updateLineChart(); // Update line chart when map metric changes
+            updateChartTitleAndLabels(); // Update chart title and labels
         }
     });
 });
@@ -186,6 +188,9 @@ resetBtn.addEventListener('click', function() {
         totalRevenueLabel.textContent = 'Total Revenue';
     }
     
+    // Update chart title and labels
+    updateChartTitleAndLabels();
+    
     // Reprocess and update
     processMovieData();
     updateVisualization();
@@ -200,6 +205,11 @@ resetZoomBtn.addEventListener('click', function() {
 });
 
 inflationBtn.addEventListener('click', function() {
+    // Inflation only applies to revenue data, not ratings
+    if (mapMetric === "rating") {
+        return; // Do nothing for rating mode
+    }
+    
     adjustForInflation = !adjustForInflation;
     
     // Update button text and style
@@ -213,16 +223,8 @@ inflationBtn.addEventListener('click', function() {
         this.style.background = '';
     }
     
-    // Update chart title if chart exists
-    if (lineChartG) {
-        let yAxisLabel;
-        if (chartMode === "total") {
-            yAxisLabel = adjustForInflation ? 'Total Revenue per Year (2025 $)' : 'Total Revenue per Year ($)';
-        } else {
-            yAxisLabel = adjustForInflation ? 'Average Revenue per Movie (2025 $)' : 'Average Revenue per Movie ($)';
-        }
-        lineChartG.select('.y-axis-label').text(yAxisLabel);
-    }
+    // Update chart title and labels
+    updateChartTitleAndLabels();
     
     // Reprocess all data with new inflation setting
     processMovieData();
@@ -263,41 +265,90 @@ maxYearSlider.addEventListener('input', function() {
 chartModeBtn.addEventListener('click', function() {
     chartMode = chartMode === "average" ? "total" : "average";
     
-    // Update button text and style
-    if (chartMode === "total") {
-        this.textContent = 'Avg Revenue per Movie';
-        this.className = 'button chart-mode-button';
-        this.style.background = 'linear-gradient(135deg, #ffc107 0%, #e0a800 100%)';
-        this.style.color = '#212529';
-    } else {
-        this.textContent = 'Total Revenue per Year';
-        this.className = 'button chart-mode-button';
-        this.style.background = '';
-        this.style.color = '';
-    }
-    
-    // Update chart title
-    const chartTitle = document.getElementById('chart-title');
-    if (chartMode === "total") {
-        chartTitle.textContent = "Total Revenue per Year";
-    } else {
-        chartTitle.textContent = "Average Revenue per Movie";
-    }
-    
-    // Update chart y-axis label if chart exists
-    if (lineChartG) {
-        let yAxisLabel;
+    // Update button text and style based on map metric
+    if (mapMetric === "rating") {
         if (chartMode === "total") {
-            yAxisLabel = adjustForInflation ? 'Total Revenue per Year (2025 $)' : 'Total Revenue per Year ($)';
+            this.textContent = 'Avg Rating per Year';
+            this.className = 'button chart-mode-button';
+            this.style.background = 'linear-gradient(135deg, #ffc107 0%, #e0a800 100%)';
+            this.style.color = '#212529';
         } else {
-            yAxisLabel = adjustForInflation ? 'Average Revenue per Movie (2025 $)' : 'Average Revenue per Movie ($)';
+            this.textContent = 'Movie Count per Year';
+            this.className = 'button chart-mode-button';
+            this.style.background = '';
+            this.style.color = '';
         }
-        lineChartG.select('.y-axis-label').text(yAxisLabel);
+    } else {
+        if (chartMode === "total") {
+            this.textContent = 'Avg Revenue per Movie';
+            this.className = 'button chart-mode-button';
+            this.style.background = 'linear-gradient(135deg, #ffc107 0%, #e0a800 100%)';
+            this.style.color = '#212529';
+        } else {
+            this.textContent = 'Total Revenue per Year';
+            this.className = 'button chart-mode-button';
+            this.style.background = '';
+            this.style.color = '';
+        }
     }
+    
+    // Update chart title and labels
+    updateChartTitleAndLabels();
     
     // Recalculate and update line chart
     updateLineChart();
 });
+
+// Function to update chart title and y-axis labels based on current mode
+function updateChartTitleAndLabels() {
+    const chartTitle = document.getElementById('chart-title');
+    
+    if (mapMetric === "rating") {
+        if (chartMode === "total") {
+            chartTitle.textContent = "Movie Count per Year";
+        } else {
+            chartTitle.textContent = "Average Rating per Year";
+        }
+        
+        // Update chart y-axis label if chart exists
+        if (lineChartG) {
+            let yAxisLabel;
+            if (chartMode === "total") {
+                yAxisLabel = 'Number of Movies';
+            } else {
+                yAxisLabel = 'Average IMDb Rating';
+            }
+            lineChartG.select('.y-axis-label').text(yAxisLabel);
+        }
+        
+        // Disable inflation button for rating mode
+        inflationBtn.style.opacity = '0.5';
+        inflationBtn.style.cursor = 'not-allowed';
+        inflationBtn.title = 'Inflation adjustment not applicable to ratings';
+    } else {
+        if (chartMode === "total") {
+            chartTitle.textContent = "Total Revenue per Year";
+        } else {
+            chartTitle.textContent = "Average Revenue per Movie";
+        }
+        
+        // Update chart y-axis label if chart exists
+        if (lineChartG) {
+            let yAxisLabel;
+            if (chartMode === "total") {
+                yAxisLabel = adjustForInflation ? 'Total Revenue per Year (2025 $)' : 'Total Revenue per Year ($)';
+            } else {
+                yAxisLabel = adjustForInflation ? 'Average Revenue per Movie (2025 $)' : 'Average Revenue per Movie ($)';
+            }
+            lineChartG.select('.y-axis-label').text(yAxisLabel);
+        }
+        
+        // Enable inflation button for revenue mode
+        inflationBtn.style.opacity = '1';
+        inflationBtn.style.cursor = 'pointer';
+        inflationBtn.title = '';
+    }
+}
 
 // Load data
 Promise.all([
@@ -320,6 +371,7 @@ Promise.all([
     
     // Create line chart
     createLineChart();
+    updateChartTitleAndLabels(); // Set initial chart title and labels
     updateLineChart();
     
 }).catch(error => {
@@ -873,7 +925,99 @@ function createLineChart() {
         .text("Trend");
 }
 
-// Calculate revenue data for a country (either average per movie or total per year)
+// Calculate rating data for a country (either average rating or movie count per year)
+function calculateRatingData(country) {
+    const ratingByYear = {};
+    
+    if (!combined_movies_data) return [];
+    
+    console.log(`Calculating rating data for: ${country}`);
+    let totalProcessed = 0;
+    let totalWithRating = 0;
+    
+    // Calculate rating for each year
+    for (const d of combined_movies_data) {
+        const year = +d.Year;
+        const rating = +d.Rating;
+        const voteStr = d.Votes;
+        
+        // Apply filters
+        if (!year || !d.countries_origin || isNaN(rating) || rating < minRating) continue;
+        
+        // Parse votes
+        let votes = 0;
+        if (voteStr) {
+            const cleaned = voteStr.trim().toUpperCase();
+            if (cleaned.endsWith("K")) {
+                votes = parseFloat(cleaned.replace("K", "")) * 1000;
+            } else if (cleaned.endsWith("M")) {
+                votes = parseFloat(cleaned.replace("M", "")) * 1000000;
+            } else {
+                votes = parseFloat(cleaned.replace(/[^0-9.]/g, ""));
+            }
+        }
+        
+        if (isNaN(votes) || votes < minVotes) continue;
+        
+        // Parse countries
+        let countries;
+        try {
+            const jsonString = d.countries_origin.replace(/'/g, '"');
+            countries = JSON.parse(jsonString);
+        } catch (e) {
+            try {
+                countries = eval(d.countries_origin);
+            } catch (e2) {
+                continue;
+            }
+        }
+        
+        // Apply country name fixes and check if this movie includes the selected country
+        const fixedCountries = countries.map(c => countryNameFixes[c] || c);
+        if (!fixedCountries.includes(country)) continue;
+        
+        totalProcessed++;
+        totalWithRating++;
+        
+        if (!ratingByYear[year]) {
+            ratingByYear[year] = { totalRating: 0, count: 0 };
+        }
+        ratingByYear[year].totalRating += rating;
+        ratingByYear[year].count += 1;
+    }
+    
+    console.log(`Processed ${totalProcessed} movies for ${country}, ${totalWithRating} had rating data`);
+    console.log('Rating by year data points:', Object.keys(ratingByYear).length);
+    
+    // Calculate either average rating per year or total count per year
+    const allRatingData = [];
+    for (let year = 1925; year <= 2025; year++) {
+        if (ratingByYear[year] && ratingByYear[year].count > 0) {
+            const dataPoint = {
+                year: year,
+                count: ratingByYear[year].count
+            };
+            
+            if (chartMode === "total") {
+                dataPoint.value = ratingByYear[year].count; // Show movie count
+            } else {
+                dataPoint.value = ratingByYear[year].totalRating / ratingByYear[year].count; // Show average rating
+            }
+            
+            allRatingData.push(dataPoint);
+        }
+    }
+    
+    // Filter data to the selected year range
+    const ratingData = allRatingData.filter(d => d.year >= minChartYear && d.year <= maxChartYear);
+    
+    console.log(`Final rating data points for line chart: ${ratingData.length}`);
+    if (ratingData.length > 0) {
+        console.log('Sample rating data point:', ratingData[0]);
+    }
+    
+    return ratingData;
+}
 function calculateRevenueData(country) {
     const revenueByYear = {};
     
@@ -990,8 +1134,15 @@ function updateLineChart() {
     const innerWidth = width - lineMargin.left - lineMargin.right;
     const innerHeight = height - lineMargin.top - lineMargin.bottom;
     
-    // Calculate data for selected country
-    const data = calculateRevenueData(selectedCountry);
+    // Calculate data for selected country based on map metric
+    let data;
+    let isRatingMode = mapMetric === "rating";
+    
+    if (isRatingMode) {
+        data = calculateRatingData(selectedCountry);
+    } else {
+        data = calculateRevenueData(selectedCountry);
+    }
     
     // Clear existing content if no data
     if (data.length === 0) {
@@ -1001,7 +1152,8 @@ function updateLineChart() {
         
         // Show no data message
         lineChartG.selectAll(".no-data-text").remove();
-        const noDataText = `No revenue data available for ${selectedCountry}`;
+        const dataType = isRatingMode ? "rating" : "revenue";
+        const noDataText = `No ${dataType} data available for ${selectedCountry}`;
         const yearRangeText = minChartYear === maxChartYear ? 
             ` in ${minChartYear}` : 
             ` from ${minChartYear} to ${maxChartYear}`;
@@ -1015,13 +1167,18 @@ function updateLineChart() {
             .style("fill", "#6c757d")
             .text(noDataText + yearRangeText);
         
-        // Update y-axis to default scale
-        lineY.domain([0, 100000000]);
-        yAxisLine.transition().duration(500).call(d3.axisLeft(lineY).tickFormat(d => {
-            if (d >= 1e9) return "$" + (d / 1e9).toFixed(0) + "B";
-            if (d >= 1e6) return "$" + (d / 1e6).toFixed(0) + "M";
-            return "$" + d.toLocaleString();
-        }));
+        // Update y-axis to default scale based on data type
+        if (isRatingMode) {
+            lineY.domain([0, 10]);
+            yAxisLine.transition().duration(500).call(d3.axisLeft(lineY).tickFormat(d => d.toFixed(1)));
+        } else {
+            lineY.domain([0, 100000000]);
+            yAxisLine.transition().duration(500).call(d3.axisLeft(lineY).tickFormat(d => {
+                if (d >= 1e9) return "$" + (d / 1e9).toFixed(0) + "B";
+                if (d >= 1e6) return "$" + (d / 1e6).toFixed(0) + "M";
+                return "$" + d.toLocaleString();
+            }));
+        }
         
         // Update x-axis to show the selected year range even with no data
         lineX.domain([minChartYear, maxChartYear]);
@@ -1040,7 +1197,6 @@ function updateLineChart() {
     lineChartG.selectAll(".no-data-text").remove();
     
     // Update x-axis domain - if we have data, use the actual data range for optimal display
-    // otherwise, use the full selected range
     const dataYears = data.map(d => d.year);
     const minDataYear = d3.min(dataYears);
     const maxDataYear = d3.max(dataYears);
@@ -1051,32 +1207,60 @@ function updateLineChart() {
     
     lineX.domain([xDomainMin, xDomainMax]);
     
-    // Update scales for revenue
-    const maxRevenue = d3.max(data, d => d.revenue);
-    const minRevenue = d3.min(data, d => d.revenue);
-    const padding = Math.abs(maxRevenue - minRevenue) * 0.1;
+    // Update scales based on data type
+    let maxValue, minValue, padding;
     
-    lineY.domain([
-        Math.max(minRevenue - padding, 0), // Don't go below 0 for revenue
-        maxRevenue + padding
-    ]);
+    if (isRatingMode) {
+        if (chartMode === "total") {
+            // Showing movie count
+            maxValue = d3.max(data, d => d.value);
+            minValue = d3.min(data, d => d.value);
+            padding = Math.abs(maxValue - minValue) * 0.1;
+            lineY.domain([Math.max(minValue - padding, 0), maxValue + padding]);
+        } else {
+            // Showing average rating (0-10 scale)
+            maxValue = d3.max(data, d => d.value);
+            minValue = d3.min(data, d => d.value);
+            // For ratings, keep some padding but stay within reasonable bounds
+            const paddingValue = 0.5;
+            lineY.domain([
+                Math.max(minValue - paddingValue, 0), 
+                Math.min(maxValue + paddingValue, 10)
+            ]);
+        }
+    } else {
+        // Revenue data
+        maxValue = d3.max(data, d => d.revenue);
+        minValue = d3.min(data, d => d.revenue);
+        padding = Math.abs(maxValue - minValue) * 0.1;
+        lineY.domain([Math.max(minValue - padding, 0), maxValue + padding]);
+    }
     
     // Update axes
     xAxisLine.transition().duration(500)
         .call(d3.axisBottom(lineX).tickFormat(d3.format("d")));
     
-    yAxisLine.transition().duration(500)
-        .call(d3.axisLeft(lineY).tickFormat(d => {
-            if (d >= 1e9) return "$" + (d / 1e9).toFixed(1) + "B";
-            if (d >= 1e6) return "$" + (d / 1e6).toFixed(1) + "M";
-            if (d >= 1e3) return "$" + (d / 1e3).toFixed(0) + "K";
-            return "$" + d.toLocaleString();
-        }));
+    // Update y-axis based on data type
+    if (isRatingMode && chartMode === "average") {
+        yAxisLine.transition().duration(500)
+            .call(d3.axisLeft(lineY).tickFormat(d => d.toFixed(1)));
+    } else if (isRatingMode && chartMode === "total") {
+        yAxisLine.transition().duration(500)
+            .call(d3.axisLeft(lineY).tickFormat(d3.format(",d")));
+    } else {
+        yAxisLine.transition().duration(500)
+            .call(d3.axisLeft(lineY).tickFormat(d => {
+                if (d >= 1e9) return "$" + (d / 1e9).toFixed(1) + "B";
+                if (d >= 1e6) return "$" + (d / 1e6).toFixed(1) + "M";
+                if (d >= 1e3) return "$" + (d / 1e3).toFixed(0) + "K";
+                return "$" + d.toLocaleString();
+            }));
+    }
     
     // Update clipping path to prevent trend line from showing below x-axis
     lineChartG.select("#trend-line-clip rect")
         .attr("width", innerWidth)
-        .attr("height", lineY(0)); // Clip at y=0 line
+        .attr("height", lineY(0));
     
     // Update grid lines to match new axes  
     lineChartG.selectAll(".grid").each(function() {
@@ -1094,27 +1278,39 @@ function updateLineChart() {
         }
     });
     
-    // Update line
+    // Update line - use different property based on data type
+    const lineGenerator = d3.line()
+        .defined(d => !isNaN(d.value || d.revenue) && (d.value || d.revenue) !== null)
+        .x(d => lineX(d.year))
+        .y(d => lineY(d.value || d.revenue))
+        .curve(d3.curveMonotoneX);
+    
     lineChartG.select(".line-path")
         .datum(data)
         .transition()
         .duration(500)
-        .attr("d", line);
+        .attr("d", lineGenerator);
     
     // Calculate and update trend line
-    const regression = calculateLinearRegression(data);
+    const valueData = data.map(d => ({year: d.year, value: d.value || d.revenue}));
+    const regression = calculateLinearRegression(valueData.map(d => ({year: d.year, revenue: d.value})));
+    
     if (regression && data.length >= 2) {
         // Create trend line data points
         const trendData = [
-            { year: xDomainMin, revenue: regression.slope * xDomainMin + regression.intercept },
-            { year: xDomainMax, revenue: regression.slope * xDomainMax + regression.intercept }
+            { year: xDomainMin, value: regression.slope * xDomainMin + regression.intercept },
+            { year: xDomainMax, value: regression.slope * xDomainMax + regression.intercept }
         ];
+        
+        const trendLineGenerator = d3.line()
+            .x(d => lineX(d.year))
+            .y(d => lineY(d.value));
         
         lineChartG.select(".trend-line")
             .datum(trendData)
             .transition()
             .duration(500)
-            .attr("d", trendLine);
+            .attr("d", trendLineGenerator);
     } else {
         // Hide trend line if insufficient data
         lineChartG.select(".trend-line")
@@ -1138,25 +1334,36 @@ function updateLineChart() {
         .attr("class", "dot")
         .attr("r", 0)
         .attr("cx", d => lineX(d.year))
-        .attr("cy", d => lineY(d.revenue));
+        .attr("cy", d => lineY(d.value || d.revenue));
     
     dots.merge(dotsEnter)
         .on("mouseover", function(d) {
-            const revenue = d.revenue;
-            const revenueDisplay = revenue >= 1e9 ? "$" + (revenue / 1e9).toFixed(2) + "B" :
-                                 revenue >= 1e6 ? "$" + (revenue / 1e6).toFixed(2) + "M" :
-                                 "$" + revenue.toLocaleString();
+            let valueDisplay, valueLabel;
             
-            let revenueLabel;
-            if (chartMode === "total") {
-                revenueLabel = adjustForInflation ? "Total Revenue (2025 $)" : "Total Revenue";
+            if (isRatingMode) {
+                if (chartMode === "total") {
+                    valueDisplay = d.value.toLocaleString();
+                    valueLabel = "Movies";
+                } else {
+                    valueDisplay = d.value.toFixed(2);
+                    valueLabel = "Average Rating";
+                }
             } else {
-                revenueLabel = adjustForInflation ? "Avg Revenue (2025 $)" : "Avg Revenue";
+                const revenue = d.revenue;
+                valueDisplay = revenue >= 1e9 ? "$" + (revenue / 1e9).toFixed(2) + "B" :
+                             revenue >= 1e6 ? "$" + (revenue / 1e6).toFixed(2) + "M" :
+                             "$" + revenue.toLocaleString();
+                
+                if (chartMode === "total") {
+                    valueLabel = adjustForInflation ? "Total Revenue (2025 $)" : "Total Revenue";
+                } else {
+                    valueLabel = adjustForInflation ? "Avg Revenue (2025 $)" : "Avg Revenue";
+                }
             }
             
             tooltip.innerHTML = `
                 <strong>${d.year}</strong><br>
-                <div class="tooltip-row">${revenueLabel}: ${revenueDisplay}</div>
+                <div class="tooltip-row">${valueLabel}: ${valueDisplay}</div>
                 <div class="tooltip-row">Movies: ${d.count}</div>
             `;
             tooltip.style.opacity = 0.9;
@@ -1172,7 +1379,7 @@ function updateLineChart() {
         .transition()
         .duration(500)
         .attr("cx", d => lineX(d.year))
-        .attr("cy", d => lineY(d.revenue))
+        .attr("cy", d => lineY(d.value || d.revenue))
         .attr("r", 4)
         .attr("fill", "#667eea")
         .attr("stroke", "#fff")
