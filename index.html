@@ -1,650 +1,781 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Interactive Movie Data Visualization Dashboard">
-  <title>Movie Data Explorer | Interactive Visualizations</title>
-  
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    
-    html {
-      scroll-behavior: smooth;
-    }
-    
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-      background-color: #f8f9fa;
-      color: #212529;
-      line-height: 1.6;
-    }
-    
-    /* Header Styles */
-    .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 1.5rem 0;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    
-    .header-content {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 2rem;
-    }
-    
-    .header h1 {
-      font-size: 2rem;
-      font-weight: 700;
-      margin-bottom: 0.5rem;
-    }
-    
-    .header p {
-      font-size: 1.1rem;
-      opacity: 0.9;
-    }
-    
-    /* Main Container */
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 2rem;
-    }
-    
-    /* Controls Styles */
-    .controls-section {
-      background: white;
-      border-radius: 12px;
-      padding: 1.5rem;
-      margin-bottom: 1.5rem;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
-    }
-    
-    .controls {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 1.5rem;
-    }
-    
-    .control-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-    
-    .control-group label {
-      font-weight: 600;
-      color: #495057;
-      font-size: 0.95rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    
-    .control-value {
-      font-weight: 500;
-      color: #667eea;
-      background-color: #f0f4ff;
-      padding: 0.2rem 0.5rem;
-      border-radius: 4px;
-      font-size: 0.9rem;
-    }
-    
-    /* Range Input Styles */
-    input[type="range"] {
-      width: 100%;
-      height: 6px;
-      background: #e9ecef;
-      border-radius: 3px;
-      outline: none;
-      cursor: pointer;
-      -webkit-appearance: none;
-    }
-    
-    input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 18px;
-      height: 18px;
-      background: #667eea;
-      border-radius: 50%;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    
-    input[type="range"]::-webkit-slider-thumb:hover {
-      background: #5563d1;
-      transform: scale(1.1);
-      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-    }
-    
-    input[type="range"]::-moz-range-thumb {
-      width: 18px;
-      height: 18px;
-      background: #667eea;
-      border-radius: 50%;
-      cursor: pointer;
-      border: none;
-      transition: all 0.2s ease;
-    }
-    
-    input[type="range"]::-moz-range-thumb:hover {
-      background: #5563d1;
-      transform: scale(1.1);
-      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-    }
-    
-    /* Radio Button Styles */
-    .radio-group {
-      display: flex;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-    
-    .radio-item {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    
-    .radio-item input[type="radio"] {
-      width: 18px;
-      height: 18px;
-      cursor: pointer;
-      accent-color: #667eea;
-    }
-    
-    .radio-item label {
-      font-size: 0.9rem;
-      color: #495057;
-      cursor: pointer;
-      user-select: none;
-      font-weight: 400;
-    }
-    
-    /* Button Styles */
-    .button {
-      padding: 0.75rem 1.5rem;
-      border-radius: 10px;
-      border: none;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      text-transform: none;
-      letter-spacing: 0.025em;
-      outline: none;
-      position: relative;
-      overflow: hidden;
-      min-width: 160px;
-      text-align: center;
-      line-height: 1.3;
-      font-family: inherit;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-    
-    .button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-    }
-    
-    .button:active {
-      transform: translateY(-1px);
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
-      transition: all 0.1s ease;
-    }
-    
-    .button:focus {
-      outline: 2px solid rgba(102, 126, 234, 0.5);
-      outline-offset: 2px;
-    }
-    
-    /* Reset Filters Button */
-    .reset-button {
-      background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-      color: white;
-    }
-    
-    .reset-button:hover {
-      background: linear-gradient(135deg, #c82333 0%, #a71e2a 100%);
-      box-shadow: 0 6px 16px rgba(220, 53, 69, 0.3);
-    }
-    
-    .reset-button:active {
-      box-shadow: 0 3px 10px rgba(220, 53, 69, 0.4);
-    }
-    
-    /* Reset Zoom Button */
-    .reset-zoom-button {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-    }
-    
-    .reset-zoom-button:hover {
-      background: linear-gradient(135deg, #5563d1 0%, #6a42a0 100%);
-      box-shadow: 0 6px 16px rgba(102, 126, 234, 0.3);
-    }
-    
-    .reset-zoom-button:active {
-      box-shadow: 0 3px 10px rgba(102, 126, 234, 0.4);
-    }
-    
-    /* Chart Mode Button */
-    .chart-mode-button {
-      background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-      color: white;
-    }
-    
-    .chart-mode-button:hover {
-      background: linear-gradient(135deg, #138496 0%, #0e6b7d 100%);
-      box-shadow: 0 6px 16px rgba(23, 162, 184, 0.3);
-    }
-    
-    .chart-mode-button:active {
-      box-shadow: 0 3px 10px rgba(23, 162, 184, 0.4);
-    }
-    
-    /* Inflation Button */
-    .inflation-button {
-      background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
-      color: white;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    
-    .inflation-button:hover {
-      background: linear-gradient(135deg, #5a6268 0%, #495057 100%);
-      box-shadow: 0 6px 16px rgba(108, 117, 125, 0.3);
-    }
-    
-    .inflation-button:active {
-      box-shadow: 0 3px 10px rgba(108, 117, 125, 0.4);
-    }
-    
-    /* Full Width Button Style */
-    .full-width-button {
-      width: 100%;
-      min-width: auto;
-      margin-top: 0.25rem;
-    }
-    
-    /* Button Group */
-    .button-group {
-      display: flex;
-      gap: 1rem;
-      align-items: center;
-      justify-content: flex-end;
-      flex-wrap: wrap;
-    }
-    
-    /* Visualization Container */
-    .viz-container {
-      background: white;
-      border-radius: 12px;
-      padding: 2rem;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
-      min-height: 600px;
-    }
-    
-    /* Map Container */
-    #map-container {
-      width: 100%;
-      height: 650px;
-      position: relative;
-    }
-    
-    /* Legend Styles */
-    .legend-container {
-      position: absolute;
-      bottom: 20px;
-      left: 20px;
-      background: white;
-      padding: 1rem;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      font-size: 0.875rem;
-    }
-    
-    .legend-title {
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-      color: #495057;
-    }
-    
-    /* Tooltip Styles */
-    .tooltip {
-      position: absolute;
-      padding: 12px;
-      font-size: 0.875rem;
-      background: white;
-      color: #212529;
-      border: 1px solid #dee2e6;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.2s ease;
-      max-width: 250px;
-      z-index: 1000;
-    }
-    
-    .tooltip strong {
-      color: #212529;
-      font-weight: 600;
-    }
-    
-    .tooltip .tooltip-row {
-      margin: 0.25rem 0;
-    }
-    
-    /* Loading Spinner */
-    .loading {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 400px;
-      color: #6c757d;
-    }
-    
-    .spinner {
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid #667eea;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-    }
-    
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    
-    /* Summary Stats */
-    .summary-stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
-      margin-bottom: 2rem;
-    }
-    
-    .stat-card {
-      background: #f8f9fa;
-      padding: 1rem;
-      border-radius: 8px;
-      text-align: center;
-      border: 1px solid #e9ecef;
-    }
-    
-    .stat-value {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: #667eea;
-    }
-    
-    .stat-label {
-      font-size: 0.875rem;
-      color: #6c757d;
-      margin-top: 0.25rem;
-    }
-    
-    /* Responsive Design */
-    @media (max-width: 768px) {
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Interactive Movie Data Visualization Dashboard"
+    />
+    <title>Movie Data Explorer | Interactive Visualizations</title>
+
+    <!-- Google Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, Oxygen, Ubuntu, sans-serif;
+        background-color: #f8f9fa;
+        color: #212529;
+        line-height: 1.6;
+      }
+
+      /* Header Styles */
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .header-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem;
+      }
+
       .header h1 {
-        font-size: 1.5rem;
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
       }
-      
+
       .header p {
-        font-size: 1rem;
+        font-size: 1.1rem;
+        opacity: 0.9;
       }
-      
-      .controls {
-        grid-template-columns: 1fr;
-        gap: 1rem;
+
+      /* Main Container */
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
       }
-      
-      .button-group {
+
+      /* Visualization Section Styles */
+      .viz-section {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+      }
+
+      .section-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #495057;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid #667eea;
+      }
+
+      /* Controls Grid */
+      .controls-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+      }
+
+      .control-group {
+        display: flex;
         flex-direction: column;
-        width: 100%;
         gap: 0.75rem;
       }
-      
-      .button {
-        width: 100%;
-        min-width: auto;
+
+      .control-group label {
+        font-weight: 600;
+        color: #495057;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
       }
-      
+
+      .control-value {
+        font-weight: 500;
+        color: #667eea;
+        background-color: #f0f4ff;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.9rem;
+      }
+
+      /* Range Input Styles */
+      input[type="range"] {
+        width: 100%;
+        height: 6px;
+        background: #e9ecef;
+        border-radius: 3px;
+        outline: none;
+        cursor: pointer;
+        -webkit-appearance: none;
+      }
+
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 18px;
+        height: 18px;
+        background: #667eea;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      input[type="range"]::-webkit-slider-thumb:hover {
+        background: #5563d1;
+        transform: scale(1.1);
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+      }
+
+      input[type="range"]::-moz-range-thumb {
+        width: 18px;
+        height: 18px;
+        background: #667eea;
+        border-radius: 50%;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s ease;
+      }
+
+      input[type="range"]::-moz-range-thumb:hover {
+        background: #5563d1;
+        transform: scale(1.1);
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+      }
+
+      /* Radio Button Styles */
+      .radio-group {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+
+      .radio-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .radio-item input[type="radio"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        accent-color: #667eea;
+      }
+
+      .radio-item label {
+        font-size: 0.9rem;
+        color: #495057;
+        cursor: pointer;
+        user-select: none;
+        font-weight: 400;
+      }
+
+      /* Button Styles */
+      .button {
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        border: none;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        text-transform: none;
+        letter-spacing: 0.025em;
+        outline: none;
+        position: relative;
+        overflow: hidden;
+        min-width: 160px;
+        text-align: center;
+        line-height: 1.3;
+        font-family: inherit;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      .button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+      }
+
+      .button:active {
+        transform: translateY(-1px);
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        transition: all 0.1s ease;
+      }
+
+      .button:focus {
+        outline: 2px solid rgba(102, 126, 234, 0.5);
+        outline-offset: 2px;
+      }
+
+      /* Reset Filters Button */
+      .reset-button {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        color: white;
+      }
+
+      .reset-button:hover {
+        background: linear-gradient(135deg, #c82333 0%, #a71e2a 100%);
+        box-shadow: 0 6px 16px rgba(220, 53, 69, 0.3);
+      }
+
+      .reset-button:active {
+        box-shadow: 0 3px 10px rgba(220, 53, 69, 0.4);
+      }
+
+      /* Reset Zoom Button */
+      .reset-zoom-button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+
+      .reset-zoom-button:hover {
+        background: linear-gradient(135deg, #5563d1 0%, #6a42a0 100%);
+        box-shadow: 0 6px 16px rgba(102, 126, 234, 0.3);
+      }
+
+      .reset-zoom-button:active {
+        box-shadow: 0 3px 10px rgba(102, 126, 234, 0.4);
+      }
+
+      /* Chart Mode Button */
+      .chart-mode-button {
+        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+        color: white;
+      }
+
+      .chart-mode-button:hover {
+        background: linear-gradient(135deg, #138496 0%, #0e6b7d 100%);
+        box-shadow: 0 6px 16px rgba(23, 162, 184, 0.3);
+      }
+
+      .chart-mode-button:active {
+        box-shadow: 0 3px 10px rgba(23, 162, 184, 0.4);
+      }
+
+      /* Inflation Button */
+      .inflation-button {
+        background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+        color: white;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .inflation-button:hover {
+        background: linear-gradient(135deg, #5a6268 0%, #495057 100%);
+        box-shadow: 0 6px 16px rgba(108, 117, 125, 0.3);
+      }
+
+      .inflation-button:active {
+        box-shadow: 0 3px 10px rgba(108, 117, 125, 0.4);
+      }
+
+      /* Full Width Button Style */
       .full-width-button {
         width: 100%;
         min-width: auto;
+        margin-top: 0.5rem;
       }
-      
-      .container {
-        padding: 1rem;
+
+      /* Button Group */
+      .button-group {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        margin-top: 1rem;
       }
-      
-      .controls-section, .viz-container {
-        padding: 1rem;
-      }
-      
+
+      /* Map Container */
       #map-container {
-        height: 500px;
+        width: 100%;
+        height: 650px;
+        position: relative;
       }
-      
-      #line-chart-container {
-        height: 300px;
-      }
-      
-      .chart-header h3 {
-        font-size: 1.1rem;
-      }
-      
+
+      /* Legend Styles */
       .legend-container {
-        bottom: 10px;
-        left: 10px;
-        padding: 0.75rem;
-        font-size: 0.75rem;
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        background: white;
+        padding: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        font-size: 0.875rem;
       }
-    }
-    
-    /* Line Chart Styles */
-    .chart-header {
-      margin-bottom: 1.5rem;
-      padding-bottom: 1rem;
-      border-bottom: 1px solid #e9ecef;
-    }
-    
-    #line-chart {
-      width: 100%;
-      height: 100%;
-    }
-    
-    .line-path {
-      fill: none;
-      stroke-width: 2;
-    }
-    
-    .dot {
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    
-    .dot:hover {
-      r: 6;
-    }
-    
-    .axis {
-      font-size: 12px;
-    }
-    
-    .axis-label {
-      font-size: 14px;
-      font-weight: 500;
-      fill: #495057;
-    }
-    
-    .grid line {
-      stroke: #e9ecef;
-      stroke-opacity: 0.7;
-      shape-rendering: crispEdges;
-    }
-    
-    .grid path {
-      stroke-width: 0;
-    }
-    
-    .no-data-message {
-      text-align: center;
-      padding: 3rem;
-      color: #6c757d;
-      font-size: 1rem;
-    }
-    
-    /* Footer */
-    .footer {
-      text-align: center;
-      padding: 2rem;
-      color: #6c757d;
-      font-size: 0.875rem;
-    }
-  </style>
-</head>
 
-<body>
-  <!-- Header Section -->
-  <header class="header">
-    <div class="header-content">
-      <h1>Movie Data Explorer</h1>
-      <p>Explore global movie production patterns, ratings, and revenue across countries and time</p>
-      <p style="font-size: 0.9rem; opacity: 0.8; margin-top: 0.5rem;">💡 Tip: Use mouse wheel to zoom and drag to pan the map. Click "Reset Zoom" to return to the original view.</p>
-      <p style="font-size: 0.85rem; opacity: 0.7; margin-top: 0.25rem;">📊 Inflation adjustments use official CPI data from the Federal Reserve Bank of Minneapolis</p>
-    </div>
-  </header>
+      .legend-title {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #495057;
+      }
 
-  <!-- Main Content -->
-  <div class="container">
-    <!-- Summary Statistics -->
-    <div class="summary-stats">
-      <div class="stat-card">
-        <div class="stat-value" id="total-movies">0</div>
-        <div class="stat-label">Total Movies</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" id="total-countries">0</div>
-        <div class="stat-label">Countries</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" id="avg-rating">0.0</div>
-        <div class="stat-label">Average Rating</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" id="total-revenue">$0</div>
-        <div class="stat-label">Total Revenue</div>
-      </div>
-    </div>
+      /* Tooltip Styles */
+      .tooltip {
+        position: absolute;
+        padding: 12px;
+        font-size: 0.875rem;
+        background: white;
+        color: #212529;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        max-width: 250px;
+        z-index: 1000;
+      }
 
-    <!-- Controls Section -->
-    <section class="controls-section">
-      <div class="controls">
-        <div class="control-group">
-          <label for="year-slider">
-            Select Year: <span class="control-value" id="year-value">2025</span>
-          </label>
-          <input type="range" id="year-slider" min="1925" max="2025" value="2025" step="1">
-        </div>
-        
-        <div class="control-group">
-          <label for="votes-slider">
-            Minimum IMDb Votes: <span class="control-value" id="votes-value">10,000</span>
-          </label>
-          <input type="range" id="votes-slider" min="0" max="100000" value="10000" step="1000">
-        </div>
-        
-        <div class="control-group">
-          <label for="rating-slider">
-            Minimum IMDb Rating: <span class="control-value" id="rating-value">7.0</span>
-          </label>
-          <input type="range" id="rating-slider" min="0" max="10" value="7" step="0.1">
-        </div>
-        
-        <div class="control-group">
-          <label>Map Metric:</label>
-          <div class="radio-group">
-            <div class="radio-item">
-              <input type="radio" id="metric-count" name="map-metric" value="count" checked>
-              <label for="metric-count">Movie Count</label>
-            </div>
-            <div class="radio-item">
-              <input type="radio" id="metric-rating" name="map-metric" value="rating">
-              <label for="metric-rating">Average Rating</label>
-            </div>
-          </div>
-        </div>
-        
-        <div class="control-group">
-          <label for="min-year-slider">
-            📊 Chart Min Year: <span class="control-value" id="min-year-value">1925</span>
-          </label>
-          <input type="range" id="min-year-slider" min="1925" max="2025" value="1925" step="1">
-          <button id="inflation-btn" class="button inflation-button full-width-button">Adjust for Inflation</button>
-          <button id="chart-mode-btn" class="button chart-mode-button full-width-button">Total Revenue per Year</button>
-        </div>
-        
-        <div class="control-group">
-          <label for="max-year-slider">
-            📊 Chart Max Year: <span class="control-value" id="max-year-value">2025</span>
-          </label>
-          <input type="range" id="max-year-slider" min="1925" max="2025" value="2025" step="1">
-          <button id="reset-zoom-btn" class="button reset-zoom-button full-width-button">Reset Zoom</button>
-          <button id="reset-btn" class="button reset-button full-width-button">Reset Filters</button>
-        </div>
-      </div>
-    </section>
+      .tooltip strong {
+        color: #212529;
+        font-weight: 600;
+      }
 
-    <!-- Map Visualization Section -->
-    <section class="viz-container">
-      <div id="map-container">
-        <div class="loading">
-          <div class="spinner"></div>
-        </div>
-      </div>
-    </section>
+      .tooltip .tooltip-row {
+        margin: 0.25rem 0;
+      }
 
-    <!-- Line Chart Section -->
-    <section class="viz-container" style="margin-top: 1.5rem;">
-      <div class="chart-header">
-        <h3 style="margin: 0 0 0.5rem 0; color: #495057; font-size: 1.25rem;">
-          <span id="chart-title">Average Revenue per Movie</span>: <span id="selected-country" style="color: #667eea; font-weight: 700;">United States of America</span>
-        </h3>
-        <p style="margin: 0; color: #6c757d; font-size: 0.875rem;">
-          Click on any country in the map above to view its revenue trends. Use "Adjust for Inflation" to see all values in 2025 dollars. Adjust the chart year range to focus on specific time periods.
+      /* Loading Spinner */
+      .loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 400px;
+        color: #6c757d;
+      }
+
+      .spinner {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #667eea;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Summary Stats */
+      .summary-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+      }
+
+      .stat-card {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
+        text-align: center;
+        border: 1px solid #e9ecef;
+      }
+
+      .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #667eea;
+      }
+
+      .stat-label {
+        font-size: 0.875rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+      }
+
+      /* Line Chart Styles */
+      .chart-header {
+        margin-bottom: 1.5rem;
+      }
+
+      .chart-info {
+        margin: 0 0 0.5rem 0;
+        color: #495057;
+        font-size: 1.25rem;
+        font-weight: 700;
+      }
+
+      .chart-description {
+        margin: 0;
+        color: #6c757d;
+        font-size: 0.875rem;
+      }
+
+      #line-chart {
+        width: 100%;
+        height: 100%;
+      }
+
+      .line-path {
+        fill: none;
+        stroke-width: 2;
+      }
+
+      .dot {
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .dot:hover {
+        r: 6;
+      }
+
+      .axis {
+        font-size: 12px;
+      }
+
+      .axis-label {
+        font-size: 14px;
+        font-weight: 500;
+        fill: #495057;
+      }
+
+      .grid line {
+        stroke: #e9ecef;
+        stroke-opacity: 0.7;
+        shape-rendering: crispEdges;
+      }
+
+      .grid path {
+        stroke-width: 0;
+      }
+
+      .no-data-message {
+        text-align: center;
+        padding: 3rem;
+        color: #6c757d;
+        font-size: 1rem;
+      }
+
+      /* Responsive Design */
+      @media (max-width: 768px) {
+        .header h1 {
+          font-size: 1.5rem;
+        }
+
+        .header p {
+          font-size: 1rem;
+        }
+
+        .controls-grid {
+          grid-template-columns: 1fr;
+          gap: 1rem;
+        }
+
+        .button-group {
+          flex-direction: column;
+          width: 100%;
+          gap: 0.75rem;
+        }
+
+        .button {
+          width: 100%;
+          min-width: auto;
+        }
+
+        .full-width-button {
+          width: 100%;
+          min-width: auto;
+        }
+
+        .container {
+          padding: 1rem;
+        }
+
+        .viz-section {
+          padding: 1rem;
+        }
+
+        #map-container {
+          height: 500px;
+        }
+
+        #line-chart-container {
+          height: 300px;
+        }
+
+        .chart-info {
+          font-size: 1.1rem;
+        }
+
+        .legend-container {
+          bottom: 10px;
+          left: 10px;
+          padding: 0.75rem;
+          font-size: 0.75rem;
+        }
+      }
+
+      /* Footer */
+      .footer {
+        text-align: center;
+        padding: 2rem;
+        color: #6c757d;
+        font-size: 0.875rem;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Header Section -->
+    <header class="header">
+      <div class="header-content">
+        <h1>Movie Data Explorer</h1>
+        <p>
+          Explore global movie production patterns, ratings, and revenue across
+          countries and time
+        </p>
+        <p style="font-size: 0.9rem; opacity: 0.8; margin-top: 0.5rem">
+          💡 Tip: Use mouse wheel to zoom and drag to pan the map. Click "Reset
+          Zoom" to return to the original view.
+        </p>
+        <p style="font-size: 0.85rem; opacity: 0.7; margin-top: 0.25rem">
+          📊 Inflation adjustments use official CPI data from the Federal
+          Reserve Bank of Minneapolis
         </p>
       </div>
-      <div id="line-chart-container" style="width: 100%; height: 400px; position: relative;">
-        <svg id="line-chart"></svg>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+      <!-- Summary Statistics -->
+      <div class="summary-stats">
+        <div class="stat-card">
+          <div class="stat-value" id="total-movies">0</div>
+          <div class="stat-label">Total Movies</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="total-countries">0</div>
+          <div class="stat-label">Countries</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="avg-rating">0.0</div>
+          <div class="stat-label">Average Rating</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="total-revenue">$0</div>
+          <div class="stat-label">Total Revenue</div>
+        </div>
       </div>
-    </section>
-  </div>
 
-  <!-- Footer -->
-  <footer class="footer">
-    <p>Movie Data Visualization Dashboard | Built with D3.js</p>
-  </footer>
+      <!-- Map Visualization Section -->
+      <section class="viz-section">
+        <h2 class="section-title">🗺️ Global Movie Distribution Map</h2>
 
-  <!-- Tooltip -->
-  <div class="tooltip"></div>
+        <!-- Map Controls -->
+        <div class="controls-grid">
+          <div class="control-group">
+            <label for="year-slider">
+              Select Year:
+              <span class="control-value" id="year-value">2025</span>
+            </label>
+            <input
+              type="range"
+              id="year-slider"
+              min="1925"
+              max="2025"
+              value="2025"
+              step="1"
+            />
+          </div>
 
-  <!-- Scripts -->
-  <script src="https://d3js.org/d3.v5.min.js"></script>
-  <script src="main.js"></script>
-</body>
+          <div class="control-group">
+            <label for="votes-slider">
+              Minimum IMDb Votes:
+              <span class="control-value" id="votes-value">10,000</span>
+            </label>
+            <input
+              type="range"
+              id="votes-slider"
+              min="0"
+              max="100000"
+              value="10000"
+              step="1000"
+            />
+          </div>
+
+          <div class="control-group">
+            <label for="rating-slider">
+              Minimum IMDb Rating:
+              <span class="control-value" id="rating-value">7.0</span>
+            </label>
+            <input
+              type="range"
+              id="rating-slider"
+              min="0"
+              max="10"
+              value="7"
+              step="0.1"
+            />
+          </div>
+
+          <div class="control-group">
+            <label>Map Metric:</label>
+            <div class="radio-group">
+              <div class="radio-item">
+                <input
+                  type="radio"
+                  id="metric-count"
+                  name="map-metric"
+                  value="count"
+                  checked
+                />
+                <label for="metric-count">Movie Count</label>
+              </div>
+              <div class="radio-item">
+                <input
+                  type="radio"
+                  id="metric-rating"
+                  name="map-metric"
+                  value="rating"
+                />
+                <label for="metric-rating">Average Rating</label>
+              </div>
+            </div>
+            <button
+              id="reset-zoom-btn"
+              class="button reset-zoom-button full-width-button"
+            >
+              Reset Zoom
+            </button>
+          </div>
+        </div>
+
+        <!-- Global Reset Button -->
+        <div class="button-group">
+          <button id="reset-btn" class="button reset-button">
+            Reset All Filters
+          </button>
+        </div>
+
+        <!-- Map Container -->
+        <div id="map-container">
+          <div class="loading">
+            <div class="spinner"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Line Chart Section -->
+      <section class="viz-section">
+        <h2 class="section-title">📈 Revenue Trends Over Time</h2>
+
+        <!-- Chart Controls -->
+        <div class="controls-grid">
+          <div class="control-group">
+            <label for="min-year-slider">
+              Chart Min Year:
+              <span class="control-value" id="min-year-value">1925</span>
+            </label>
+            <input
+              type="range"
+              id="min-year-slider"
+              min="1925"
+              max="2025"
+              value="1925"
+              step="1"
+            />
+          </div>
+
+          <div class="control-group">
+            <label for="max-year-slider">
+              Chart Max Year:
+              <span class="control-value" id="max-year-value">2025</span>
+            </label>
+            <input
+              type="range"
+              id="max-year-slider"
+              min="1925"
+              max="2025"
+              value="2025"
+              step="1"
+            />
+          </div>
+
+          <div class="control-group">
+            <label>Chart Options:</label>
+            <button
+              id="inflation-btn"
+              class="button inflation-button full-width-button"
+            >
+              Adjust for Inflation
+            </button>
+            <button
+              id="chart-mode-btn"
+              class="button chart-mode-button full-width-button"
+            >
+              Total Revenue per Year
+            </button>
+          </div>
+        </div>
+
+        <!-- Chart Header -->
+        <div class="chart-header">
+          <h3 class="chart-info">
+            <span id="chart-title">Average Revenue per Movie</span>:
+            <span id="selected-country" style="color: #667eea; font-weight: 700"
+              >United States of America</span
+            >
+          </h3>
+          <p class="chart-description">
+            Click on any country in the map above to view its revenue trends.
+            Use "Adjust for Inflation" to see all values in 2025 dollars. Adjust
+            the chart year range to focus on specific time periods.
+          </p>
+        </div>
+
+        <!-- Chart Container -->
+        <div
+          id="line-chart-container"
+          style="width: 100%; height: 400px; position: relative"
+        >
+          <svg id="line-chart"></svg>
+        </div>
+      </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>Movie Data Visualization Dashboard | Built with D3.js</p>
+    </footer>
+
+    <!-- Tooltip -->
+    <div class="tooltip"></div>
+
+    <!-- Scripts -->
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script src="main.js"></script>
+  </body>
 </html>
