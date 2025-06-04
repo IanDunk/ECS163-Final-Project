@@ -347,7 +347,7 @@
         pointer-events: none;
         opacity: 0;
         transition: opacity 0.2s ease;
-        max-width: 250px;
+        max-width: 360px;
         z-index: 1000;
       }
 
@@ -479,6 +479,37 @@
         font-size: 1rem;
       }
 
+      /* ensures the table stretches full width and has no spacing between borders */
+      .styled-table-container table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+        font-size: 0.95rem;
+      }
+
+      /* applies consistent padding, border, and left-aligns text */
+      .styled-table-container th,
+      .styled-table-container td {
+        padding: 8px 12px;
+        border: 1px solid #dee2e6;
+        text-align: left;
+      }
+
+      /* gives a light gray background to the header row */
+      .styled-table-container thead {
+        background-color: #f1f3f5;
+      }
+
+      /* makes every even-numbered row a slightly different color for readability */
+      .styled-table-container tr:nth-child(even) {
+        background-color: #f9f9f9;
+      }
+
+      /* highlight on hover */
+      #high-budget-table tbody tr:hover {
+        background-color: #e9f2ff;
+      }
+      
       /* Responsive Design */
       @media (max-width: 768px) {
         .header h1 {
@@ -764,6 +795,43 @@
           <svg id="line-chart"></svg>
         </div>
       </section>
+      <!-- section to hold the table for top 25 percent of most expensive movies -->
+      <section class="viz-section">
+        <!-- title of the section, with the year and updated js -->
+        <h2 class="section-title">
+          🎬 Top 25% Budget Movies in 
+          <span id="budget-year-label">2025</span>
+        </h2>
+        <!-- description telling what the table shows-->
+        <p class="chart-description">
+          Revenue and budget figures are converted to USD for comparison.
+          Click the headers on the table to sort by budget, rating, ect.
+        </p>
+
+        <!-- cointainer to style the whole table -->
+        <div class="styled-table-container">
+          <!-- table headers, clickable for sorting -->
+          <table id="high-budget-table">
+            <thead>
+              <tr>
+                <th data-key="Title">Title</th>
+                <th data-key="Country">Country</th>
+                <th data-key="Rating">Rating</th>
+                <th data-key="BudgetUSD">Budget&nbsp;(USD)</th>
+                <th data-key="RevenueUSD">Revenue&nbsp;(USD)</th>
+              </tr>
+            </thead>
+            <!-- table body, data will be filled -->
+            <tbody><!-- js injects rows here --></tbody>
+          </table>
+
+          <!-- message that shows if there is no movie data for that year -->
+          <div id="high-budget-fallback"
+              style="display:none;color:#6c757d;padding:1rem;">
+            No data available for the selected year.
+          </div>
+        </div>
+      </section>
     </div>
 
     <!-- Footer -->
@@ -772,10 +840,10 @@
     </footer>
 
     <!-- Tooltip -->
-    <div class="tooltip"></div>
+    <div id="movie-tooltip" class="tooltip" style="opacity:0;"></div>
 
     <!-- Scripts -->
     <script src="https://d3js.org/d3.v5.min.js"></script>
-    <script src="main.js"></script>
+    <script type="module" src="main.js"></script>
   </body>
 </html>

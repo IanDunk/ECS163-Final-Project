@@ -1,3 +1,5 @@
+import { currencyRatesToUSD } from './currencyRates.js';
+
 // Global variables
 let combined_movies_data = null;
 let customGeoJSON = null;
@@ -111,6 +113,7 @@ yearSlider.addEventListener('input', function() {
     selectedYear = +this.value;
     yearValue.textContent = selectedYear;
     updateVisualization();
+    updateHighBudgetMovieTable();
 });
 
 ratingSlider.addEventListener('input', function() {
@@ -195,6 +198,7 @@ resetBtn.addEventListener('click', function() {
     processMovieData();
     updateVisualization();
     updateLineChart();
+    updateHighBudgetMovieTable();
     
     // Reset scroll position
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -463,6 +467,7 @@ function processMovieData() {
             movieCountsByYear[year][country].ratingCount++;
         }
     }
+    updateHighBudgetMovieTable();
 }
 
 // Create the map visualization
@@ -1385,6 +1390,295 @@ function updateLineChart() {
         .attr("stroke", "#fff")
         .attr("stroke-width", 2);
 }
+
+// function to turn the money string into a number in USD
+function toUSD(moneyStr) {
+    // if it's empty, return 0
+    if (!moneyStr) {
+        return 0;
+    }
+
+    // get rid of extra spaces
+    var txt = moneyStr.trim();
+
+    // try to match a currency symbol at the start, like $
+    var symbolMatch = txt.match(/^([^\d\s\.,]+)/);
+    if (symbolMatch) {
+        var symbol = symbolMatch[1].toUpperCase();
+
+        // pull out just the number part
+        var numeric = parseFloat(txt.replace(/[^0-9\.]/g, ""));
+        if (isNaN(numeric)) {
+            numeric = 0;
+        }
+
+        // look up the exchange rate for that symbol
+        var rate = currencyRatesToUSD[symbol];
+        if (!rate) {
+            rate = 1; // if not found, just default to USD
+        }
+
+        // return converted ammount
+        return numeric * rate;
+    }
+
+    // try a 3 letyter currency code at the end, like USD
+    var codeMatch = txt.match(/([A-Z]{3})$/);
+    if (codeMatch) {
+        var code = codeMatch[1].toUpperCase();
+
+        // again just get the number
+        var numericCode = parseFloat(txt.replace(/[^0-9\.]/g, ""));
+        if (isNaN(numericCode)) {
+            numericCode = 0;
+        }
+
+        // look up exchange rate
+        var codeRate = currencyRatesToUSD[code];
+        if (!codeRate) {
+            codeRate = 1;
+        }
+
+        // return ammount
+        return numericCode * codeRate;
+    }
+
+    // if it's not a symbol or a code, just treat is like usd
+    var fallback = parseFloat(txt.replace(/[^0-9\.]/g, ""));
+    return isNaN(fallback) ? 0 : fallback;
+}
+
+// the function to format a number into a short string
+function fmtMoney(n) {
+    // if it's a billion or more, 
+    if (n >= 1000000000) {
+        // return shortenend num w/ B at end, like 1.1B
+        return "$" + (n / 1000000000).toFixed(1) + " B";
+    }
+    // do same for million, 
+    if (n >= 1000000) {
+        return "$" + (n / 1000000).toFixed(1) + " M";
+    }
+    // and thousand
+    if (n >= 1000) {
+        return "$" + (n / 1000).toFixed(0) + " K";
+    }
+
+    // otherwise just use commas
+    return "$" + n.toLocaleString();
+}
+
+// the default column to sort by
+var currentSortKey   = "BudgetUSD";
+// if it's sorting in ascending or descending order
+var currentAscending = false;
+
+// function to clean up an format the data, like in stars, writers, ect
+function cleanArray(str) {
+    // if it's empty, return blank
+    if (!str) return "";
+    try { // otherwise try to fix the quotes and return and array
+        return JSON.parse(str.replace(/'/g, '"')).join(", ");
+    } catch {
+        // if that fails, just remove manually 
+        return str.replace(/[\[\]']+/g, "");
+    }
+}
+
+// function to update the high budget movie table
+function updateHighBudgetMovieTable() {
+    // stop if there is no data then stop
+    if (!combined_movies_data) {
+        return;
+    }
+
+    // get the selected year and update the label
+    var year = selectedYear;
+    document.getElementById("budget-year-label").textContent = year;
+
+    // select the table body and fallback message
+    var tbody = d3.select("#high-budget-table tbody");
+    var fallback = d3.select("#high-budget-fallback");
+
+    // make a new array with only good movies from that year
+    var movies = [];
+    for (var i = 0; i < combined_movies_data.length; i++) {
+        var d = combined_movies_data[i];
+
+        // only include movies from the selected year
+        if (parseInt(d.Year, 10) !== year) {
+            continue;
+        }
+
+        // convert the money and ratings
+        var budgetUSD = toUSD(d.budget);
+        var revenueUSD = toUSD(d.grossWorldWWide);
+        var ratingNum = parseFloat(d.Rating);
+
+        // skip if the budget or ratings are bad
+        if (budgetUSD <= 0 || isNaN(ratingNum) || ratingNum <= 0) {
+            continue;
+        }
+
+        // add cleaned up movie data to the array
+        movies.push({
+            id: d.imdbID || (d.Title + year + i),
+            Title: d.Title,
+            Country: (d.countries_origin || "").replace(/[\[\]']+/g, ""),
+            Rating: ratingNum.toFixed(1),
+            BudgetUSD: budgetUSD,
+            RevenueUSD: revenueUSD,
+            Description: d.description || "",
+            Stars: cleanArray(d.stars),
+            Writers: cleanArray(d.writers),
+            Directors: cleanArray(d.directors),
+            Genres: cleanArray(d.genres),
+            Languages: cleanArray(d.Languages)
+        });
+    }
+
+
+    // sort the movies by budget, only keep to 25%
+    movies.sort(function(a, b) {
+        return b.BudgetUSD - a.BudgetUSD;
+    });
+    movies = movies.slice(0, Math.floor(movies.length * 0.25));
+
+    // if there are no movies to show, then stop
+    if (movies.length === 0) {
+        tbody.html("");
+        fallback.style("display", "block");
+        return;
+    }
+
+    // hide the message
+    fallback.style("display", "none");
+
+    // sort the movies based on the column the user clicked
+    movies.sort(function(a, b) {
+        var cmp = 0;
+        if (a[currentSortKey] < b[currentSortKey]) {
+            cmp = -1;
+        } else if (a[currentSortKey] > b[currentSortKey]) {
+            cmp = 1;
+        }
+        return currentAscending ? cmp : -cmp;
+    });
+
+    // connect the movie data to table rows
+    var rows = tbody.selectAll("tr")
+        .data(movies, function(d) {
+            return d.id;
+    });
+
+    // remove old rows
+    rows.exit()
+        .transition()
+        .duration(300)
+        .style("opacity", 0)
+        .remove();
+
+    // add new rows to the table 
+    var rowsEnter = rows.enter().append("tr")
+        .style("opacity", 0)
+        .on("mouseover", function(d) {
+            // show tooltip when hover over
+            var event = d3.event;
+            var tooltip = d3.select("#movie-tooltip");
+
+            // set the html content of the tooltip box when hover over
+            tooltip.html(
+            // title of the movie in bold
+            "<strong>" + d.Title + "</strong><br>" +
+            // country movie was made
+            "<div><strong>Country:</strong> " + (d.Country || "N/A") + "</div>" +
+            // the imdb rating
+            "<div><strong>Rating:</strong> " + d.Rating + "</div>" +
+            // the budget, in usd format
+            "<div><strong>Budget:</strong> " + fmtMoney(d.BudgetUSD) + "</div>" +
+            // revenue, or NA if not in data set
+            "<div><strong>Revenue:</strong> " + (d.RevenueUSD > 0 ? fmtMoney(d.RevenueUSD) : "N/A") + "</div>" +
+            "<hr>" +
+            // the movie plot/description
+            "<div><strong>Plot:</strong> " + (d.Description || "No summary available") + "</div>" +
+            // main actors or cast, directors, writers, ect
+            "<div><strong>Cast:</strong> " + (d.Stars || "N/A") + "</div>" +
+            "<div><strong>Directors:</strong> " + (d.Directors || "N/A") + "</div>" +
+            "<div><strong>Writers:</strong> " + (d.Writers || "N/A") + "</div>" +
+            "<div><strong>Genres:</strong> " + (d.Genres || "N/A") + "</div>" +
+            "<div><strong>Languages:</strong> " + (d.Languages || "N/A") + "</div>"
+            )
+            .style("left", (event.pageX + 12) + "px")
+            .style("top", (event.pageY + 12) + "px")
+            .style("opacity", 0.95);
+        })
+        .on("mousemove", function() {
+        // move tooltip as mouse moves
+            var event = d3.event;
+            d3.select("#movie-tooltip")
+            .style("left", (event.pageX + 12) + "px")
+            .style("top", (event.pageY + 12) + "px");
+        })
+        .on("mouseout", function() {
+            // hide tooltip when mouse leaves
+            d3.select("#movie-tooltip").style("opacity", 0);
+        });
+
+    // add table for each column
+    rowsEnter.append("td").attr("class", "col-title");
+    rowsEnter.append("td").attr("class", "col-country");
+    rowsEnter.append("td").attr("class", "col-rating");
+    rowsEnter.append("td").attr("class", "col-budget");
+    rowsEnter.append("td").attr("class", "col-revenue");
+
+    // update the table cells with movie info
+    var rowsMerge = rowsEnter.merge(rows);
+
+    rowsMerge.select(".col-title").text(function(d) {
+        return d.Title;
+    });
+    rowsMerge.order();  
+    rowsMerge.select(".col-country").text(function(d) {
+        return d.Country;
+    });
+    rowsMerge.select(".col-rating").text(function(d) {
+        return d.Rating;
+    });
+    rowsMerge.select(".col-budget").text(function(d) {
+        return fmtMoney(d.BudgetUSD);
+    });
+    rowsMerge.select(".col-revenue").text(function(d) {
+    if (d.RevenueUSD > 0) {
+        return fmtMoney(d.RevenueUSD);
+    } else {
+        return "N/A";
+    }
+    });
+
+    /* fade in rows */
+    rowsMerge.transition()
+        .duration(300)
+        .style("opacity", 1);
+}
+
+/* when the user clicks a column header, sort that column */
+d3.selectAll("#high-budget-table thead th")
+  .style("cursor", "pointer")
+  .on("click", function() {
+    var key = d3.select(this).attr("data-key");
+    if (key) {
+      if (currentSortKey === key) {
+        currentAscending = !currentAscending;
+      } else {
+        currentSortKey = key;
+        currentAscending = true;
+      }
+      updateHighBudgetMovieTable();
+    }
+  });
+
+/* call once the page loads */
+updateHighBudgetMovieTable();
 
 // Handle window resize
 window.addEventListener('resize', debounce(() => {
