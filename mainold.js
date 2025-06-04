@@ -166,11 +166,15 @@ resetBtn.addEventListener('click', function() {
     
     // Reset inflation button
     inflationBtn.textContent = 'Adjust for Inflation';
-    inflationBtn.className = 'button inflation-button';
+    inflationBtn.style.backgroundColor = '#6c757d';
+    inflationBtn.style.borderColor = '#6c757d';
+    inflationBtn.style.color = 'white';
     
     // Reset chart mode button
     chartModeBtn.textContent = 'Total Revenue per Year';
-    chartModeBtn.className = 'button chart-mode-button';
+    chartModeBtn.style.backgroundColor = '#17a2b8';
+    chartModeBtn.style.borderColor = '#17a2b8';
+    chartModeBtn.style.color = 'white';
     
     // Reset chart title
     document.getElementById('chart-title').textContent = 'Average Revenue per Movie';
@@ -205,12 +209,14 @@ inflationBtn.addEventListener('click', function() {
     // Update button text and style
     if (adjustForInflation) {
         this.textContent = '2025 Dollars (ON)';
-        this.className = 'button inflation-button';
-        this.style.background = 'linear-gradient(135deg, #28a745 0%, #20a142 100%)';
+        this.style.backgroundColor = '#28a745';
+        this.style.borderColor = '#28a745';
+        this.style.color = 'white';
     } else {
         this.textContent = 'Adjust for Inflation';
-        this.className = 'button inflation-button';
-        this.style.background = '';
+        this.style.backgroundColor = '#6c757d';
+        this.style.borderColor = '#6c757d';
+        this.style.color = 'white';
     }
     
     // Update chart title if chart exists
@@ -266,14 +272,14 @@ chartModeBtn.addEventListener('click', function() {
     // Update button text and style
     if (chartMode === "total") {
         this.textContent = 'Avg Revenue per Movie';
-        this.className = 'button chart-mode-button';
-        this.style.background = 'linear-gradient(135deg, #ffc107 0%, #e0a800 100%)';
+        this.style.backgroundColor = '#ffc107';
+        this.style.borderColor = '#ffc107';
         this.style.color = '#212529';
     } else {
         this.textContent = 'Total Revenue per Year';
-        this.className = 'button chart-mode-button';
-        this.style.background = '';
-        this.style.color = '';
+        this.style.backgroundColor = '#17a2b8';
+        this.style.borderColor = '#17a2b8';
+        this.style.color = 'white';
     }
     
     // Update chart title
@@ -572,7 +578,7 @@ function handleMouseMove(d) {
         const percent = totalCount > 0 ? ((count / totalCount) * 100).toFixed(1) : "0.0";
         const avgRating = ratingCount > 0 ? (ratingSum / ratingCount).toFixed(2) : "N/A";
 
-        let revenueDisplay = "No data available";
+        let revenueDisplay = "Unknown";
         if (revenue > 0) {
             revenueDisplay = revenue >= 1e9 ? (revenue / 1e9).toFixed(1) + 'B'
                               : revenue >= 1e6 ? (revenue / 1e6).toFixed(1) + 'M'
