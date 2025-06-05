@@ -106,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
         processMovieData(); 
 
         if (currentPage === 'dashboard') { // Only Map
-            initializeDashboardPageOnlyMap();
+            initializeFullDashboardPage(); 
         } else if (currentPage === 'journey') { // Only Journey Line Chart
             initializeJourneyPageLineChart();
         } else if (currentPage === 'full_dashboard') { // Map + Dashboard Line Chart
