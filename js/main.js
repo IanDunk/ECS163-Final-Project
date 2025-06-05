@@ -845,13 +845,24 @@ function updateHighBudgetScatter() {
     scatterView = scatterSvg.append("g")
       .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
+    scatterSvg.append("defs")
+      .append("clipPath")
+      .attr("id", "scatter-clip")
+      .append("rect")
+      .attr("x", 0)
+      .attr("y", 0)
+      .attr("width", width)
+      .attr("height", height);
+
     scatterView.append("rect")
       .attr("class", "bg-rect-scatter") // More specific class
       .attr("fill", "transparent") // Dark theme: transparent background
       .attr("width", width)
       .attr("height", height);
 
-    dotsScatter = scatterView.append("g").attr("class", "dots-scatter"); // Specific class
+    dotsScatter = scatterView.append("g").attr("class", "dots-scatter") // Specific class
+      .attr("class", "dots-scatter")
+      .attr("clip-path", "url(#scatter-clip)");
     xAxisScatterG = scatterView.append("g").attr("class", "x-axis scatter-axis"); // Specific class
     yAxisScatterG = scatterView.append("g").attr("class", "y-axis scatter-axis"); // Specific class
 
