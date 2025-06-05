@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cinema Data Dashboard | Full Explorer (Dark Theme)</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, Oxygen, Ubuntu, sans-serif;
+        background-color: #0f0f23; /* Dark page background */
+        color: #e0e0e0; /* Default light text color */
+        line-height: 1.6;
+      }
+
+      .header {
+        background: rgba(20, 20, 40, 0.85);
+        backdrop-filter: blur(10px);
+        padding: 1rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+      }
+
+      .header-content {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .logo {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #ffffff;
+      }
+
+      .back-button {
+        color: #ffffff;
+        text-decoration: none;
+        font-weight: 500;
+        padding: 0.6rem 1.2rem;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 8px;
+        transition: all 0.3s ease;
+      }
+
+      .back-button:hover {
+        background: rgba(102, 126, 234, 0.2);
+        border-color: #667eea;
+      }
+
+      .dashboard-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem;
+        min-height: calc(100vh - 80px);
+      }
+
+      .dashboard-title {
+        text-align: center;
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 2.5rem;
+        color: #ffffff;
+      }
+
+      .viz-section {
+        background: rgba(30, 30, 55, 0.7);
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      }
+
+      .viz-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        color: #ffffff;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      }
+
+      .viz-container {
+        background: transparent;
+        border-radius: 12px;
+        padding: 0;
+      }
+
+      .summary-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+      }
+
+      .stat-card {
+        background: rgba(40, 40, 65, 0.7);
+        padding: 1.5rem;
+        border-radius: 12px;
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+      }
+
+      .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #82aaff;
+      }
+
+      .stat-label {
+        font-size: 0.9rem;
+        color: #a0a0b0;
+        margin-top: 0.5rem;
+      }
+
+      .controls-section {
+        background: rgba(30, 30, 55, 0.7);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem 2rem;
+      }
+
+      .control-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .control-group label {
+        font-weight: 600;
+        color: #c0c0d0;
+        font-size: 0.95rem;
+      }
+
+      .control-value {
+        font-weight: 500;
+        color: #82aaff;
+        background-color: rgba(102, 126, 234, 0.15);
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        display: inline-block;
+        margin-left: 0.5rem;
+      }
+
+      input[type="range"] {
+        width: 100%;
+        height: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        outline: none;
+        cursor: pointer;
+        -webkit-appearance: none;
+      }
+
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        background: #667eea;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 2px solid #0f0f23;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      }
+
+      input[type="range"]::-webkit-slider-thumb:hover {
+        background: #788eff;
+        transform: scale(1.1);
+      }
+
+      input[type="range"]::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        background: #667eea;
+        border-radius: 50%;
+        cursor: pointer;
+        border: 2px solid #0f0f23;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        transition: all 0.2s ease;
+      }
+
+      input[type="range"]::-moz-range-thumb:hover {
+        background: #788eff;
+        transform: scale(1.1);
+      }
+
+      .radio-group {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-top: 0.25rem;
+      }
+
+      .radio-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .radio-item input[type="radio"] {
+        -webkit-appearance: none;
+        appearance: none;
+        background-color: rgba(255, 255, 255, 0.1);
+        margin: 0;
+        font: inherit;
+        color: #667eea;
+        width: 1.15em;
+        height: 1.15em;
+        border: 0.1em solid #667eea;
+        border-radius: 50%;
+        transform: translateY(-0.075em);
+        display: grid;
+        place-content: center;
+      }
+      .radio-item input[type="radio"]::before {
+        content: "";
+        width: 0.65em;
+        height: 0.65em;
+        border-radius: 50%;
+        transform: scale(0);
+        transition: 120ms transform ease-in-out;
+        box-shadow: inset 1em 1em #667eea;
+      }
+      .radio-item input[type="radio"]:checked::before {
+        transform: scale(1);
+      }
+      .radio-item input[type="radio"]:focus {
+        outline: max(2px, 0.15em) solid #788eff;
+        outline-offset: max(2px, 0.1em);
+      }
+
+      .radio-item label {
+        font-size: 0.9rem;
+        color: #c0c0d0;
+        cursor: pointer;
+        user-select: none;
+        font-weight: 500;
+      }
+
+      .button {
+        padding: 0.85rem 1.5rem;
+        border-radius: 8px;
+        border: 1px solid rgba(102, 126, 234, 0.7);
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        text-transform: none;
+        letter-spacing: 0.01em;
+        outline: none;
+        position: relative;
+        overflow: hidden;
+        min-width: 150px;
+        text-align: center;
+        line-height: 1.4;
+        font-family: inherit;
+        color: #ffffff;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      }
+
+      .button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 12px rgba(102, 126, 234, 0.3);
+        filter: brightness(1.1);
+      }
+
+      .button:active {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+        filter: brightness(0.95);
+      }
+
+      .button:focus {
+        outline: 3px solid rgba(102, 126, 234, 0.5);
+        outline-offset: 1px;
+      }
+
+      .reset-button {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        border-color: rgba(239, 68, 68, 0.7);
+      }
+      .reset-button:hover {
+        filter: brightness(1.1);
+        box-shadow: 0 5px 12px rgba(220, 53, 69, 0.3);
+      }
+
+      .reset-zoom-button {
+        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        border-color: rgba(139, 92, 246, 0.7);
+      }
+      .reset-zoom-button:hover {
+        filter: brightness(1.1);
+        box-shadow: 0 5px 12px rgba(139, 92, 246, 0.3);
+      }
+
+      .inflation-button {
+        background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+        border-color: rgba(75, 85, 99, 0.7);
+      }
+      .inflation-button:hover {
+        filter: brightness(1.1);
+        box-shadow: 0 5px 12px rgba(75, 85, 99, 0.3);
+      }
+      .inflation-button.active {
+        background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+        border-color: rgba(22, 163, 74, 0.7);
+      }
+
+      .chart-mode-button {
+        background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+        border-color: rgba(14, 165, 233, 0.7);
+      }
+      .chart-mode-button:hover {
+        filter: brightness(1.1);
+        box-shadow: 0 5px 12px rgba(14, 165, 233, 0.3);
+      }
+      .chart-mode-button.active {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        border-color: rgba(245, 158, 11, 0.7);
+        color: #1f2937;
+      }
+
+      .full-width-button {
+        width: 100%;
+        margin-top: 0.75rem;
+      }
+      .control-group .button:first-of-type {
+        margin-top: 0.25rem;
+      }
+      .control-group .button + .button {
+        margin-top: 0.75rem;
+      }
+
+      #map-container {
+        width: 100%;
+        height: 600px;
+        position: relative;
+        background-color: transparent;
+      }
+      #map-container svg {
+        display: block;
+      }
+
+      .loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: #a0a0b0;
+      }
+
+      .spinner {
+        border: 4px solid rgba(255, 255, 255, 0.2);
+        border-top: 4px solid #82aaff;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .tooltip {
+        position: absolute;
+        padding: 10px 15px;
+        font-size: 0.9rem;
+        background: #1a1a2e;
+        color: #e0e0e0;
+        border: 1px solid #4a5568;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.2s ease, transform 0.2s ease;
+        max-width: 280px;
+        z-index: 1001;
+        transform: translate(-50%, calc(-100% - 15px));
+      }
+      .tooltip strong {
+        color: #ffffff;
+        display: block;
+        margin-bottom: 0.25rem;
+      }
+      .tooltip .tooltip-row {
+        margin: 0.3rem 0;
+        font-size: 0.85rem;
+        color: #b0b0c0;
+      }
+
+      /* Line Chart Specific Styles for Dark Theme on Dashboard Page */
+      .chart-header {
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      }
+      .chart-header h3 {
+        margin: 0 0 0.5rem 0;
+        color: #ffffff;
+        font-size: 1.25rem;
+      }
+      .chart-header h3 #selected-country {
+        color: #82aaff;
+        font-weight: 700;
+      }
+      .chart-header p {
+        margin: 0;
+        color: #a0a0b0;
+        font-size: 0.875rem;
+      }
+
+      #line-chart-container {
+        width: 100%;
+        height: 400px;
+        position: relative;
+        background-color: transparent;
+      }
+      #line-chart {
+        display: block;
+        margin: auto;
+        background-color: transparent;
+      }
+      #line-chart .axis path,
+      #line-chart .axis line {
+        stroke: #718096;
+      }
+      #line-chart .axis text {
+        fill: #a0a0b0;
+        font-size: 11px;
+      }
+      #line-chart .axis-label {
+        fill: #e0e0e0;
+        font-size: 13px;
+      }
+      #line-chart .grid line {
+        stroke: rgba(255, 255, 255, 0.1);
+        stroke-opacity: 0.7;
+      }
+      #line-chart .grid path {
+        stroke-width: 0;
+      }
+      #line-chart .line-path {
+        stroke: #82aaff;
+        stroke-width: 2.5px;
+      }
+      #line-chart .trend-line {
+        stroke: #f59e0b;
+        stroke-width: 2px;
+        stroke-dasharray: "6,6";
+      }
+      #line-chart .dot {
+        fill: #82aaff;
+        stroke: #0f0f23; /* Match page background */
+        stroke-width: 1.5px;
+      }
+      #line-chart .no-data-text {
+        fill: #a0a0b0;
+        font-size: 16px;
+        text-anchor: middle;
+      }
+
+      @media (max-width: 768px) {
+        .dashboard-title {
+          font-size: 2rem;
+          margin-bottom: 2rem;
+        }
+        .controls {
+          grid-template-columns: 1fr;
+        }
+        .viz-section,
+        .controls-section {
+          padding: 1.5rem;
+        }
+        .dashboard-container {
+          padding: 1.5rem;
+        }
+        #map-container {
+          height: 450px;
+        }
+        #line-chart-container {
+          height: 350px;
+        }
+        .stat-value {
+          font-size: 1.5rem;
+        }
+        .stat-label {
+          font-size: 0.8rem;
+        }
+        .chart-header h3 {
+          font-size: 1.1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="header">
+      <div class="header-content">
+        <div class="logo">Cinema Stories Dashboard</div>
+        <a href="index.html" class="back-button">← Back to Introduction</a>
+      </div>
+    </header>
+
+    <div class="dashboard-container">
+      <h1 class="dashboard-title">Global Cinema Data Explorer</h1>
+
+      <!-- Map Visualization Section -->
+      <section class="viz-section">
+        <h2 class="viz-title">Global Cinema Production by Country</h2>
+
+        <div class="summary-stats">
+          <div class="stat-card">
+            <div class="stat-value" id="total-movies">0</div>
+            <div class="stat-label">Total Movies</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="total-countries">0</div>
+            <div class="stat-label">Countries</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="avg-rating">0.0</div>
+            <div class="stat-label">Average Rating</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="total-revenue">$0</div>
+            <div class="stat-label">Total Revenue</div>
+          </div>
+        </div>
+
+        <div class="controls-section">
+          <div class="controls">
+            <div class="control-group">
+              <label for="year-slider">
+                Select Year:
+                <span class="control-value" id="year-value">2025</span>
+              </label>
+              <input
+                type="range"
+                id="year-slider"
+                min="1925"
+                max="2025"
+                value="2025"
+                step="1"
+              />
+            </div>
+
+            <div class="control-group">
+              <label for="votes-slider">
+                Minimum IMDb Votes:
+                <span class="control-value" id="votes-value">10,000</span>
+              </label>
+              <input
+                type="range"
+                id="votes-slider"
+                min="0"
+                max="100000"
+                value="10000"
+                step="1000"
+              />
+            </div>
+
+            <div class="control-group">
+              <label for="rating-slider">
+                Minimum IMDb Rating:
+                <span class="control-value" id="rating-value">7.0</span>
+              </label>
+              <input
+                type="range"
+                id="rating-slider"
+                min="0"
+                max="10"
+                value="7"
+                step="0.1"
+              />
+            </div>
+
+            <div class="control-group">
+              <label>Map Metric:</label>
+              <div class="radio-group">
+                <div class="radio-item">
+                  <input
+                    type="radio"
+                    id="metric-count"
+                    name="map-metric"
+                    value="count"
+                    checked
+                  />
+                  <label for="metric-count">Movie Count</label>
+                </div>
+                <div class="radio-item">
+                  <input
+                    type="radio"
+                    id="metric-rating"
+                    name="map-metric"
+                    value="rating"
+                  />
+                  <label for="metric-rating">Average Rating</label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Line Chart Controls -->
+            <div class="control-group">
+              <label for="min-year-slider">
+                📊 Chart Min Year:
+                <span class="control-value" id="min-year-value">1925</span>
+              </label>
+              <input
+                type="range"
+                id="min-year-slider"
+                min="1925"
+                max="2025"
+                value="1925"
+                step="1"
+              />
+            </div>
+            <div class="control-group">
+              <label for="max-year-slider">
+                📊 Chart Max Year:
+                <span class="control-value" id="max-year-value">2025</span>
+              </label>
+              <input
+                type="range"
+                id="max-year-slider"
+                min="1925"
+                max="2025"
+                value="2025"
+                step="1"
+              />
+            </div>
+
+            <div class="control-group">
+              <label>Chart & Data Options:</label>
+              <!-- Combined label -->
+              <button
+                id="inflation-btn"
+                class="button inflation-button full-width-button"
+              >
+                Adjust for Inflation
+              </button>
+              <button
+                id="chart-mode-btn"
+                class="button chart-mode-button full-width-button"
+              >
+                Total Revenue per Year
+              </button>
+            </div>
+
+            <div class="control-group">
+              <label>General Actions:</label>
+              <button
+                id="reset-zoom-btn"
+                class="button reset-zoom-button full-width-button"
+              >
+                Reset Map Zoom
+              </button>
+              <button
+                id="reset-btn"
+                class="button reset-button full-width-button"
+              >
+                Reset All Filters
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="viz-container" style="margin-bottom: 2rem">
+          <h2
+            class="viz-title"
+            style="text-align: center; border-bottom: none; margin-bottom: 1rem"
+          >
+            Country Production Map
+          </h2>
+          <div id="map-container">
+            <div class="loading">
+              <div class="spinner"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Line Chart Section -->
+        <div class="viz-container">
+          <div class="chart-header">
+            <h3>
+              <span id="chart-title">Average Revenue per Movie</span>:
+              <span id="selected-country">United States of America</span>
+            </h3>
+            <p>
+              Click on any country in the map above to view its trends. Use
+              controls to adjust data display.
+            </p>
+          </div>
+          <div id="line-chart-container">
+            <svg id="line-chart"></svg>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="tooltip"></div>
+
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script src="js/main.js"></script>
+  </body>
+</html>

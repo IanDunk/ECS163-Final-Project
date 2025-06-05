@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Interactive Movie Data Visualization Dashboard"
+      content="The Global Story of Cinema: A Data-Driven Journey"
     />
-    <title>Movie Data Explorer | Interactive Visualizations</title>
+    <title>The Global Story of Cinema | Data Visualization</title>
 
     <!-- Google Fonts -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
 
@@ -29,753 +29,703 @@
       body {
         font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
           Roboto, Oxygen, Ubuntu, sans-serif;
-        background-color: #f8f9fa;
-        color: #212529;
+        background-color: #0f0f23;
+        color: #ffffff;
         line-height: 1.6;
+        overflow-x: hidden;
       }
 
-      /* Header Styles */
-      .header {
+      /* Navigation */
+      .nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: rgba(15, 15, 35, 0.95);
+        backdrop-filter: blur(10px);
+        padding: 1rem 0;
+        z-index: 1000;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .nav-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .nav-logo {
+        font-size: 1.5rem;
+        font-weight: 700;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 1.5rem 0;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
 
-      .header-content {
+      .nav-links {
+        display: flex;
+        gap: 2rem;
+        list-style: none;
+      }
+
+      .nav-links a {
+        color: #ffffff;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.3s ease;
+        position: relative;
+      }
+
+      .nav-links a:hover {
+        color: #667eea;
+      }
+
+      .nav-links a.active::after {
+        content: "";
+        position: absolute;
+        bottom: -5px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: #667eea;
+      }
+
+      /* Section Styles */
+      .section {
+        min-height: 100vh;
+        padding: 100px 0 50px;
+        position: relative;
+      }
+
+      .container {
         max-width: 1200px;
         margin: 0 auto;
         padding: 0 2rem;
       }
 
-      .header h1 {
-        font-size: 2rem;
-        font-weight: 700;
-        margin-bottom: 0.5rem;
-      }
-
-      .header p {
-        font-size: 1.1rem;
-        opacity: 0.9;
-      }
-
-      /* Main Container */
-      .container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 2rem;
-      }
-
-      /* Visualization Section Styles */
-      .viz-section {
-        background: white;
-        border-radius: 12px;
-        padding: 2rem;
-        margin-bottom: 1.5rem;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-      }
-
-      .section-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #495057;
-        margin-bottom: 1.5rem;
-        padding-bottom: 0.75rem;
-        border-bottom: 2px solid #667eea;
-      }
-
-      /* Controls Grid */
-      .controls-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 2rem;
-        padding: 1.5rem;
-        background: #f8f9fa;
-        border-radius: 8px;
-        border: 1px solid #e9ecef;
-      }
-
-      .control-group {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-      }
-
-      .control-group label {
-        font-weight: 600;
-        color: #495057;
-        font-size: 0.95rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
-
-      .control-value {
-        font-weight: 500;
-        color: #667eea;
-        background-color: #f0f4ff;
-        padding: 0.2rem 0.5rem;
-        border-radius: 4px;
-        font-size: 0.9rem;
-      }
-
-      /* Range Input Styles */
-      input[type="range"] {
-        width: 100%;
-        height: 6px;
-        background: #e9ecef;
-        border-radius: 3px;
-        outline: none;
-        cursor: pointer;
-        -webkit-appearance: none;
-      }
-
-      input[type="range"]::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 18px;
-        height: 18px;
-        background: #667eea;
-        border-radius: 50%;
-        cursor: pointer;
-        transition: all 0.2s ease;
-      }
-
-      input[type="range"]::-webkit-slider-thumb:hover {
-        background: #5563d1;
-        transform: scale(1.1);
-        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-      }
-
-      input[type="range"]::-moz-range-thumb {
-        width: 18px;
-        height: 18px;
-        background: #667eea;
-        border-radius: 50%;
-        cursor: pointer;
-        border: none;
-        transition: all 0.2s ease;
-      }
-
-      input[type="range"]::-moz-range-thumb:hover {
-        background: #5563d1;
-        transform: scale(1.1);
-        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-      }
-
-      /* Radio Button Styles */
-      .radio-group {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-      }
-
-      .radio-item {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
-
-      .radio-item input[type="radio"] {
-        width: 18px;
-        height: 18px;
-        cursor: pointer;
-        accent-color: #667eea;
-      }
-
-      .radio-item label {
-        font-size: 0.9rem;
-        color: #495057;
-        cursor: pointer;
-        user-select: none;
-        font-weight: 400;
-      }
-
-      /* Button Styles */
-      .button {
-        padding: 0.75rem 1.5rem;
-        border-radius: 10px;
-        border: none;
-        font-size: 0.95rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        text-transform: none;
-        letter-spacing: 0.025em;
-        outline: none;
-        position: relative;
-        overflow: hidden;
-        min-width: 160px;
-        text-align: center;
-        line-height: 1.3;
-        font-family: inherit;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-      }
-
-      .button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-      }
-
-      .button:active {
-        transform: translateY(-1px);
-        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
-        transition: all 0.1s ease;
-      }
-
-      .button:focus {
-        outline: 2px solid rgba(102, 126, 234, 0.5);
-        outline-offset: 2px;
-      }
-
-      /* Reset Filters Button */
-      .reset-button {
-        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-        color: white;
-      }
-
-      .reset-button:hover {
-        background: linear-gradient(135deg, #c82333 0%, #a71e2a 100%);
-        box-shadow: 0 6px 16px rgba(220, 53, 69, 0.3);
-      }
-
-      .reset-button:active {
-        box-shadow: 0 3px 10px rgba(220, 53, 69, 0.4);
-      }
-
-      /* Reset Zoom Button */
-      .reset-zoom-button {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-      }
-
-      .reset-zoom-button:hover {
-        background: linear-gradient(135deg, #5563d1 0%, #6a42a0 100%);
-        box-shadow: 0 6px 16px rgba(102, 126, 234, 0.3);
-      }
-
-      .reset-zoom-button:active {
-        box-shadow: 0 3px 10px rgba(102, 126, 234, 0.4);
-      }
-
-      /* Chart Mode Button */
-      .chart-mode-button {
-        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-        color: white;
-      }
-
-      .chart-mode-button:hover {
-        background: linear-gradient(135deg, #138496 0%, #0e6b7d 100%);
-        box-shadow: 0 6px 16px rgba(23, 162, 184, 0.3);
-      }
-
-      .chart-mode-button:active {
-        box-shadow: 0 3px 10px rgba(23, 162, 184, 0.4);
-      }
-
-      /* Inflation Button */
-      .inflation-button {
-        background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
-        color: white;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-
-      .inflation-button:hover {
-        background: linear-gradient(135deg, #5a6268 0%, #495057 100%);
-        box-shadow: 0 6px 16px rgba(108, 117, 125, 0.3);
-      }
-
-      .inflation-button:active {
-        box-shadow: 0 3px 10px rgba(108, 117, 125, 0.4);
-      }
-
-      /* Full Width Button Style */
-      .full-width-button {
-        width: 100%;
-        min-width: auto;
-        margin-top: 0.5rem;
-      }
-
-      /* Button Group */
-      .button-group {
-        display: flex;
-        gap: 1rem;
-        align-items: center;
-        justify-content: flex-end;
-        flex-wrap: wrap;
-        margin-top: 1rem;
-      }
-
-      /* Map Container */
-      #map-container {
-        width: 100%;
-        height: 650px;
-        position: relative;
-      }
-
-      /* Legend Styles */
-      .legend-container {
-        position: absolute;
-        bottom: 20px;
-        left: 20px;
-        background: white;
-        padding: 1rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        font-size: 0.875rem;
-      }
-
-      .legend-title {
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-        color: #495057;
-      }
-
-      /* Tooltip Styles */
-      .tooltip {
-        position: absolute;
-        padding: 12px;
-        font-size: 0.875rem;
-        background: white;
-        color: #212529;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        pointer-events: none;
-        opacity: 0;
-        transition: opacity 0.2s ease;
-        max-width: 250px;
-        z-index: 1000;
-      }
-
-      .tooltip strong {
-        color: #212529;
-        font-weight: 600;
-      }
-
-      .tooltip .tooltip-row {
-        margin: 0.25rem 0;
-      }
-
-      /* Loading Spinner */
-      .loading {
+      /* Hero Section */
+      .hero {
+        background: radial-gradient(ellipse at center, #1a1a3a 0%, #0f0f23 70%);
         display: flex;
         align-items: center;
         justify-content: center;
-        height: 400px;
-        color: #6c757d;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
       }
 
-      .spinner {
-        border: 3px solid #f3f3f3;
-        border-top: 3px solid #667eea;
-        border-radius: 50%;
-        width: 40px;
-        height: 40px;
-        animation: spin 1s linear infinite;
+      .hero::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" patternUnits="userSpaceOnUse" width="100" height="100"><circle cx="25" cy="25" r="1" fill="%23ffffff" opacity="0.05"/><circle cx="75" cy="75" r="1" fill="%23ffffff" opacity="0.03"/><circle cx="50" cy="10" r="0.5" fill="%23667eea" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+        animation: float 20s ease-in-out infinite;
       }
 
-      @keyframes spin {
-        0% {
-          transform: rotate(0deg);
-        }
+      @keyframes float {
+        0%,
         100% {
-          transform: rotate(360deg);
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-20px);
         }
       }
 
-      /* Summary Stats */
-      .summary-stats {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-        margin-bottom: 2rem;
+      .hero-content {
+        position: relative;
+        z-index: 2;
       }
 
-      .stat-card {
-        background: #f8f9fa;
-        padding: 1rem;
-        border-radius: 8px;
-        text-align: center;
-        border: 1px solid #e9ecef;
-      }
-
-      .stat-value {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #667eea;
-      }
-
-      .stat-label {
-        font-size: 0.875rem;
-        color: #6c757d;
-        margin-top: 0.25rem;
-      }
-
-      /* Line Chart Styles */
-      .chart-header {
+      .hero h1 {
+        font-size: 4rem;
+        font-weight: 800;
         margin-bottom: 1.5rem;
+        background: linear-gradient(
+          135deg,
+          #667eea 0%,
+          #764ba2 50%,
+          #f093fb 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        line-height: 1.1;
       }
 
-      .chart-info {
-        margin: 0 0 0.5rem 0;
-        color: #495057;
-        font-size: 1.25rem;
-        font-weight: 700;
+      .hero-subtitle {
+        font-size: 1.5rem;
+        color: #a0a0a0;
+        margin-bottom: 2rem;
+        font-weight: 300;
       }
 
-      .chart-description {
-        margin: 0;
-        color: #6c757d;
-        font-size: 0.875rem;
+      .hero-description {
+        font-size: 1.2rem;
+        color: #cccccc;
+        max-width: 800px;
+        margin: 0 auto 3rem;
+        line-height: 1.7;
       }
 
-      #line-chart {
-        width: 100%;
-        height: 100%;
+      .cta-button {
+        display: inline-block;
+        padding: 1.25rem 2.5rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        text-decoration: none;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 1.1rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
       }
 
-      .line-path {
-        fill: none;
-        stroke-width: 2;
+      .cta-button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
       }
 
-      .dot {
-        cursor: pointer;
-        transition: all 0.2s ease;
+      /* Content Sections */
+      .content-section {
+        background: #1a1a2e; /* Dark panel background */
+        margin: 2rem 0;
+        border-radius: 20px;
+        padding: 3rem 0; /* Adjusted padding */
+        position: relative;
+        border: 1px solid rgba(255,255,255,0.08);
       }
 
-      .dot:hover {
-        r: 6;
+      .content-section:nth-child(even) { /* Not used currently, but good for alternating styles */
+        background: #16213e; 
       }
 
-      .axis {
-        font-size: 12px;
-      }
-
-      .axis-label {
-        font-size: 14px;
-        font-weight: 500;
-        fill: #495057;
-      }
-
-      .grid line {
-        stroke: #e9ecef;
-        stroke-opacity: 0.7;
-        shape-rendering: crispEdges;
-      }
-
-      .grid path {
-        stroke-width: 0;
-      }
-
-      .no-data-message {
+      .section-header {
         text-align: center;
-        padding: 3rem;
-        color: #6c757d;
+        margin-bottom: 3rem; /* Adjusted margin */
+      }
+
+      .section-number {
         font-size: 1rem;
+        color: #667eea;
+        font-weight: 600;
+        margin-bottom: 0.75rem; /* Adjusted margin */
+        text-transform: uppercase;
+        letter-spacing: 2px;
       }
 
-      /* Responsive Design */
-      @media (max-width: 768px) {
-        .header h1 {
-          font-size: 1.5rem;
-        }
-
-        .header p {
-          font-size: 1rem;
-        }
-
-        .controls-grid {
-          grid-template-columns: 1fr;
-          gap: 1rem;
-        }
-
-        .button-group {
-          flex-direction: column;
-          width: 100%;
-          gap: 0.75rem;
-        }
-
-        .button {
-          width: 100%;
-          min-width: auto;
-        }
-
-        .full-width-button {
-          width: 100%;
-          min-width: auto;
-        }
-
-        .container {
-          padding: 1rem;
-        }
-
-        .viz-section {
-          padding: 1rem;
-        }
-
-        #map-container {
-          height: 500px;
-        }
-
-        #line-chart-container {
-          height: 300px;
-        }
-
-        .chart-info {
-          font-size: 1.1rem;
-        }
-
-        .legend-container {
-          bottom: 10px;
-          left: 10px;
-          padding: 0.75rem;
-          font-size: 0.75rem;
-        }
+      .section-title {
+        font-size: 2.5rem; /* Adjusted size */
+        font-weight: 700;
+        margin-bottom: 1rem; /* Adjusted margin */
+        color: #ffffff;
       }
 
-      /* Footer */
-      .footer {
-        text-align: center;
+      .section-description {
+        font-size: 1.15rem; /* Adjusted size */
+        color: #a0a0b0; /* Lighter gray for better contrast */
+        max-width: 750px; /* Adjusted width */
+        margin: 0 auto;
+        line-height: 1.7;
+      }
+
+      /* Question Cards */
+      .question-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); /* Adjusted minmax */
+        gap: 1.5rem; /* Adjusted gap */
+        margin-top: 2.5rem; /* Adjusted margin */
+      }
+
+      .question-card {
+        background: rgba(255, 255, 255, 0.03); /* Slightly less transparent */
+        backdrop-filter: blur(8px); /* Slightly less blur */
+        border: 1px solid rgba(255, 255, 255, 0.08); /* Softer border */
+        border-radius: 12px; /* Softer radius */
+        padding: 1.75rem; /* Adjusted padding */
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .question-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+      }
+
+      .question-card:hover {
+        transform: translateY(-5px) scale(1.02); /* Added scale effect */
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.35); /* Adjusted shadow */
+        border-color: rgba(102, 126, 234, 0.4); /* Brighter border on hover */
+      }
+
+      .question-icon {
+        font-size: 2.25rem; /* Adjusted size */
+        margin-bottom: 0.75rem; /* Adjusted margin */
+        /* Emojis will use default color, ensure they are visible or use SVG icons */
+      }
+
+      .question-title {
+        font-size: 1.25rem; /* Adjusted size */
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        color: #ffffff;
+      }
+
+      .question-text {
+        color: #b0b0c0; /* Lighter text */
+        line-height: 1.6;
+        font-size: 0.95rem; /* Adjusted size */
+      }
+
+      /* Visualization Preview for Line Chart */
+      .viz-preview {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 16px;
         padding: 2rem;
-        color: #6c757d;
-        font-size: 0.875rem;
+        margin: 3rem auto; /* Centered and adjusted margin */
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        max-width: 900px; /* Max width for the chart section */
+      }
+      
+      .chart-header-journey { /* Styling for the line chart header on this page */
+          padding-bottom: 1rem; 
+          border-bottom: 1px solid rgba(255,255,255,0.1); 
+          margin-bottom: 1.5rem;
+          text-align: center;
+      }
+      .chart-header-journey h3 {
+          margin: 0 0 0.5rem 0; 
+          color: #ffffff; 
+          font-size: 1.5rem; 
+      }
+      .chart-header-journey p {
+          margin: 0; 
+          color: #a0a0b0; 
+          font-size: 1rem; 
+      }
+
+      #line-chart-container-journey {
+          width: 100%; 
+          height: 450px; 
+          position: relative; 
+          background: transparent; /* Ensure it's transparent to show .viz-preview bg */
+          border-radius: 8px; 
+          /* padding: 1rem;  Padding might interfere with SVG positioning */
+      }
+      #line-chart-journey { /* The SVG element itself */
+          display: block; 
+          margin: auto;
+          background-color: transparent; /* Explicitly transparent */
+      }
+      /* Styling for D3 generated Line Chart elements (axes, grid, text) */
+      #line-chart-journey .axis path,
+      #line-chart-journey .axis line {
+          stroke: #718096; /* Lighter gray for axis lines */
+      }
+      #line-chart-journey .axis text {
+          fill: #A0A0B0; /* Light gray for tick text */
+          font-size: 11px; 
+      }
+      #line-chart-journey .axis-label { /* X and Y axis titles */
+          fill: #E0E0E0; /* Bright text for axis titles */
+          font-size: 13px; 
+      }
+      #line-chart-journey .grid line {
+          stroke: rgba(255, 255, 255, 0.1); /* Very subtle light grid lines */
+          stroke-opacity: 0.7;
+      }
+      #line-chart-journey .grid path { /* Hide domain path for grid */
+          stroke-width: 0;
+      }
+      #line-chart-journey .line-path {
+          /* stroke: #667eea; Default, set in JS */
+      }
+      #line-chart-journey .trend-line {
+          /* stroke: #e74c3c; Default, set in JS */
+      }
+      #line-chart-journey .dot {
+          /* fill: #667eea; stroke: #0f0f23; Defaults, set in JS */
+          /* Ensure dot stroke matches the chart's effective background */
+      }
+      #line-chart-journey .no-data-text { /* If JS adds this class */
+          fill: #A0A0B0;
+          font-size: 16px;
+          text-anchor: middle;
+      }
+      .loading-journey { /* Loading message for the chart */
+          position: absolute; 
+          top: 50%; 
+          left: 50%; 
+          transform: translate(-50%, -50%); 
+          color: #a0a0b0; 
+          font-size: 1rem;
+      }
+
+
+      /* Journey Steps */
+      .journey-steps {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem; /* Adjusted gap */
+        margin: 3rem 0; /* Adjusted margin */
+      }
+
+      .step-card {
+        text-align: center;
+        padding: 1.75rem; /* Adjusted padding */
+        position: relative;
+        background: rgba(255,255,255,0.02); /* Subtle background for step cards */
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.05);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+      .step-card:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 10px 20px rgba(0,0,0,0.25);
+      }
+
+      .step-number {
+        width: 50px; /* Adjusted size */
+        height: 50px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem; /* Adjusted size */
+        font-weight: 700;
+        margin: 0 auto 1rem; /* Adjusted margin */
+        color: white;
+        box-shadow: 0 4px 10px rgba(102, 126, 234, 0.25);
+      }
+
+      .step-title {
+        font-size: 1.2rem; /* Adjusted size */
+        font-weight: 600;
+        margin-bottom: 0.75rem; /* Adjusted margin */
+        color: #ffffff;
+      }
+
+      .step-description {
+        color: #a0a0b0; /* Lighter text */
+        line-height: 1.6;
+        font-size: 0.9rem; /* Adjusted size */
+      }
+
+      /* Final CTA */
+      .final-cta {
+        text-align: center;
+        padding: 3rem 0; /* Adjusted padding */
+        background: radial-gradient(
+          ellipse at center,
+          rgba(102, 126, 234, 0.08) 0%, /* Slightly more visible gradient */
+          transparent 70%
+        );
+      }
+
+      /* Mobile Responsive */
+      @media (max-width: 768px) {
+        .nav-links {
+          display: none; 
+        }
+        .hero h1 { font-size: 2.5rem; }
+        .hero-subtitle { font-size: 1.2rem; }
+        .hero-description { font-size: 1rem; }
+        .section-title { font-size: 2rem; }
+        .question-grid { grid-template-columns: 1fr; }
+        .container { padding: 0 1rem; }
+        .section { padding: 80px 0 30px; }
+        .viz-preview { padding: 1.5rem; }
+        #line-chart-container-journey { height: 350px; } /* Adjust chart height for mobile */
+        .chart-header-journey h3 { font-size: 1.25rem; }
+        .chart-header-journey p { font-size: 0.9rem; }
+      }
+
+      /* Scroll Progress Indicator */
+      .progress-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 0%;
+        height: 3px;
+        background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+        z-index: 1001;
+        transition: width 0.1s ease-out; /* Smoother progress */
       }
     </style>
   </head>
 
   <body>
-    <!-- Header Section -->
-    <header class="header">
-      <div class="header-content">
-        <h1>Movie Data Explorer</h1>
-        <p>
-          Explore global movie production patterns, ratings, and revenue across
-          countries and time
-        </p>
-        <p style="font-size: 0.9rem; opacity: 0.8; margin-top: 0.5rem">
-          💡 Tip: Use mouse wheel to zoom and drag to pan the map. Click "Reset
-          Zoom" to return to the original view.
-        </p>
-        <p style="font-size: 0.85rem; opacity: 0.7; margin-top: 0.25rem">
-          📊 Inflation adjustments use official CPI data from the Federal
-          Reserve Bank of Minneapolis
-        </p>
+    <div class="progress-bar" id="progressBar"></div>
+
+    <nav class="nav">
+      <div class="nav-content">
+        <div class="nav-logo">Cinema Stories</div>
+        <ul class="nav-links">
+          <li><a href="#introduction" class="active">Introduction</a></li>
+          <li><a href="#questions">Questions</a></li>
+          <li><a href="#journey">Journey</a></li>
+          <li><a href="#exploration">Explore</a></li>
+        </ul>
       </div>
-    </header>
+    </nav>
 
-    <!-- Main Content -->
-    <div class="container">
-      <!-- Summary Statistics -->
-      <div class="summary-stats">
-        <div class="stat-card">
-          <div class="stat-value" id="total-movies">0</div>
-          <div class="stat-label">Total Movies</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" id="total-countries">0</div>
-          <div class="stat-label">Countries</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" id="avg-rating">0.0</div>
-          <div class="stat-label">Average Rating</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" id="total-revenue">$0</div>
-          <div class="stat-label">Total Revenue</div>
-        </div>
-      </div>
-
-      <!-- Map Visualization Section -->
-      <section class="viz-section">
-        <h2 class="section-title">🗺️ Global Movie Distribution Map</h2>
-
-        <!-- Map Controls -->
-        <div class="controls-grid">
-          <div class="control-group">
-            <label for="year-slider">
-              Select Year:
-              <span class="control-value" id="year-value">2025</span>
-            </label>
-            <input
-              type="range"
-              id="year-slider"
-              min="1925"
-              max="2025"
-              value="2025"
-              step="1"
-            />
-          </div>
-
-          <div class="control-group">
-            <label for="votes-slider">
-              Minimum IMDb Votes:
-              <span class="control-value" id="votes-value">10,000</span>
-            </label>
-            <input
-              type="range"
-              id="votes-slider"
-              min="0"
-              max="100000"
-              value="10000"
-              step="1000"
-            />
-          </div>
-
-          <div class="control-group">
-            <label for="rating-slider">
-              Minimum IMDb Rating:
-              <span class="control-value" id="rating-value">7.0</span>
-            </label>
-            <input
-              type="range"
-              id="rating-slider"
-              min="0"
-              max="10"
-              value="7"
-              step="0.1"
-            />
-          </div>
-
-          <div class="control-group">
-            <label>Map Metric:</label>
-            <div class="radio-group">
-              <div class="radio-item">
-                <input
-                  type="radio"
-                  id="metric-count"
-                  name="map-metric"
-                  value="count"
-                  checked
-                />
-                <label for="metric-count">Movie Count</label>
-              </div>
-              <div class="radio-item">
-                <input
-                  type="radio"
-                  id="metric-rating"
-                  name="map-metric"
-                  value="rating"
-                />
-                <label for="metric-rating">Average Rating</label>
-              </div>
-            </div>
-            <button
-              id="reset-zoom-btn"
-              class="button reset-zoom-button full-width-button"
-            >
-              Reset Zoom
-            </button>
-          </div>
-        </div>
-
-        <!-- Global Reset Button -->
-        <div class="button-group">
-          <button id="reset-btn" class="button reset-button">
-            Reset All Filters
-          </button>
-        </div>
-
-        <!-- Map Container -->
-        <div id="map-container">
-          <div class="loading">
-            <div class="spinner"></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Line Chart Section -->
-      <section class="viz-section">
-        <h2 class="section-title">📈 Revenue Trends Over Time</h2>
-
-        <!-- Chart Controls -->
-        <div class="controls-grid">
-          <div class="control-group">
-            <label for="min-year-slider">
-              Chart Min Year:
-              <span class="control-value" id="min-year-value">1925</span>
-            </label>
-            <input
-              type="range"
-              id="min-year-slider"
-              min="1925"
-              max="2025"
-              value="1925"
-              step="1"
-            />
-          </div>
-
-          <div class="control-group">
-            <label for="max-year-slider">
-              Chart Max Year:
-              <span class="control-value" id="max-year-value">2025</span>
-            </label>
-            <input
-              type="range"
-              id="max-year-slider"
-              min="1925"
-              max="2025"
-              value="2025"
-              step="1"
-            />
-          </div>
-
-          <div class="control-group">
-            <label>Chart Options:</label>
-            <button
-              id="inflation-btn"
-              class="button inflation-button full-width-button"
-            >
-              Adjust for Inflation
-            </button>
-            <button
-              id="chart-mode-btn"
-              class="button chart-mode-button full-width-button"
-            >
-              Total Revenue per Year
-            </button>
-          </div>
-        </div>
-
-        <!-- Chart Header -->
-        <div class="chart-header">
-          <h3 class="chart-info">
-            <span id="chart-title">Average Revenue per Movie</span>:
-            <span id="selected-country" style="color: #667eea; font-weight: 700"
-              >United States of America</span
-            >
-          </h3>
-          <p class="chart-description">
-            Click on any country in the map above to view its revenue trends.
-            Use "Adjust for Inflation" to see all values in 2025 dollars. Adjust
-            the chart year range to focus on specific time periods.
+    <section id="introduction" class="section hero">
+      <div class="container">
+        <div class="hero-content">
+          <h1>The Global Story of Cinema</h1>
+          <p class="hero-subtitle">
+            A Data-Driven Journey Through Film History
           </p>
+          <p class="hero-description">
+            From Hollywood's golden age to the rise of international cinema,
+            discover how movies have evolved across countries, decades, and
+            cultures. Through interactive visualizations, we'll uncover the
+            patterns, trends, and stories hidden in decades of film data.
+          </p>
+          <a href="#questions" class="cta-button">Begin the Journey</a>
         </div>
+      </div>
+    </section>
 
-        <!-- Chart Container -->
-        <div
-          id="line-chart-container"
-          style="width: 100%; height: 400px; position: relative"
-        >
-          <svg id="line-chart"></svg>
+    <section id="questions" class="section">
+      <div class="container">
+        <div class="content-section">
+          <div class="section-header">
+            <div class="section-number">Chapter 01</div>
+            <h2 class="section-title">The Questions We're Exploring</h2>
+            <p class="section-description">
+              Every great story begins with compelling questions. Our
+              exploration of global cinema data seeks to answer fundamental
+              questions about how movies are made, received, and valued around
+              the world.
+            </p>
+          </div>
+
+          <div class="question-grid">
+            <div class="question-card">
+              <div class="question-icon">🌍</div> 
+              <h3 class="question-title">Global Distribution</h3>
+              <p class="question-text">
+                Which countries dominate movie production? How has the global
+                film landscape shifted over the decades, and what does this tell
+                us about cultural influence and economic power?
+              </p>
+            </div>
+            <div class="question-card">
+              <div class="question-icon">🌟</div> 
+              <h3 class="question-title">Quality vs. Quantity</h3>
+              <p class="question-text">
+                Do countries that produce more movies also produce better ones?
+                Is there a relationship between volume of production and average
+                rating quality?
+              </p>
+            </div>
+            <div class="question-card">
+              <div class="question-icon">💰</div> 
+              <h3 class="question-title">Economic Evolution</h3>
+              <p class="question-text">
+                How have movie revenues changed over time? What impact has
+                inflation had on the perceived value of films, and which markets
+                generate the most revenue?
+              </p>
+            </div>
+            <div class="question-card">
+              <div class="question-icon">⏳</div> 
+              <h3 class="question-title">Temporal Patterns</h3>
+              <p class="question-text">
+                Are there distinct eras in cinema history visible in the data?
+                How do different decades compare in terms of production volume,
+                quality, and commercial success?
+              </p>
+            </div>
+            <div class="question-card">
+              <div class="question-icon">🎬</div> 
+              <h3 class="question-title">Cultural Impact</h3>
+              <p class="question-text">
+                What makes a movie culturally significant? Can we identify
+                patterns in highly-rated films that transcend geographical
+                boundaries?
+              </p>
+            </div>
+            <div class="question-card">
+              <div class="question-icon">🔍</div> 
+              <h3 class="question-title">Hidden Stories</h3>
+              <p class="question-text">
+                What unexpected trends emerge when we look at the data from
+                multiple angles? Which countries or time periods might surprise
+                us with their cinematic contributions?
+              </p>
+            </div>
+          </div>
         </div>
-      </section>
-    </div>
+      </div>
+    </section>
 
-    <!-- Footer -->
-    <footer class="footer">
-      <p>Movie Data Visualization Dashboard | Built with D3.js</p>
-    </footer>
+    <section id="journey" class="section">
+      <div class="container">
+        <div class="content-section">
+          <div class="section-header">
+            <div class="section-number">Chapter 02</div>
+            <h2 class="section-title">Our Data Journey</h2>
+            <p class="section-description">
+              We'll guide you through our findings step by step, building
+              understanding and revealing insights through carefully crafted
+              visualizations.
+            </p>
+          </div>
 
-    <!-- Tooltip -->
-    <div class="tooltip"></div>
+          <div class="journey-steps">
+            <div class="step-card">
+              <div class="step-number">1</div>
+              <h3 class="step-title">Revenue Trends</h3>
+              <p class="step-description">
+                First, we'll examine how movie revenues have evolved over time,
+                exploring the impact of inflation and identifying key economic
+                periods in cinema history.
+              </p>
+            </div>
+            <div class="step-card">
+              <div class="step-number">2</div>
+              <h3 class="step-title">Quality Analysis</h3>
+              <p class="step-description">
+                Next, we'll dive into rating patterns, discovering which
+                countries consistently produce highly-rated films and how
+                quality has changed over decades.
+              </p>
+            </div>
+            <div class="step-card">
+              <div class="step-number">3</div>
+              <h3 class="step-title">Global Patterns</h3>
+              <p class="step-description">
+                Finally, we'll reveal the complete picture through an
+                interactive world map, allowing you to explore the global
+                distribution of cinema production and excellence.
+              </p>
+            </div>
+          </div>
 
-    <!-- Scripts -->
+          <div class="viz-preview">
+            <div class="chart-header-journey">
+              <h3 >
+                <span id="chart-title-journey">Revenue Trends Over Time</span>: 
+                <span id="selected-country-journey" style="color: #667eea; font-weight: 700;">United States of America</span>
+              </h3>
+              <p>
+                Illustrative trend for the selected country. For full interactivity and controls, please visit the main dashboard.
+              </p>
+            </div>
+            <div id="line-chart-container-journey">
+              <svg id="line-chart-journey"></svg>
+              <div class="loading-journey">Loading chart data...</div>
+            </div>
+            <div style="text-align: center; margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1);">
+              <p style="color: #cccccc; margin-bottom: 1.5rem; font-size: 1.1rem;">
+                Want to explore data for other countries or adjust filters?
+              </p>
+              <a href="dashboard.html" class="cta-button">Launch Full Interactive Dashboard</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="exploration" class="section">
+      <div class="container">
+        <div class="final-cta">
+          <h2 class="section-title">Ready to Explore?</h2>
+          <p class="section-description">
+            Now that you understand our mission, let's dive into the data and
+            discover the hidden stories of global cinema together.
+          </p>
+          <a href="dashboard.html" class="cta-button" style="margin-top: 2rem">Start Exploring</a>
+        </div>
+      </div>
+    </section>
+
     <script src="https://d3js.org/d3.v5.min.js"></script>
-    <script src="main.js"></script>
+    <!-- Ensure this path is correct for your project structure -->
+    <script src="js/main.js"></script> 
+
+    <script>
+      // Smooth scrolling for navigation links
+      document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+        anchor.addEventListener("click", function (e) {
+          e.preventDefault();
+          const target = document.querySelector(this.getAttribute("href"));
+          if (target) {
+            target.scrollIntoView({
+              behavior: "smooth",
+              block: "start", 
+            });
+          }
+        });
+      });
+
+      // Update navigation active state and progress bar
+      window.addEventListener("scroll", () => {
+        const scrolled =
+          (window.pageYOffset /
+            (document.documentElement.scrollHeight - window.innerHeight)) *
+          100;
+        document.getElementById("progressBar").style.width = scrolled + "%";
+
+        const sections = document.querySelectorAll(".section");
+        const navLinks = document.querySelectorAll(".nav-links a");
+        let current = "introduction"; // Default to introduction
+
+        sections.forEach((section) => {
+          const sectionTop = section.offsetTop;
+          if (pageYOffset >= sectionTop - (window.innerHeight / 3) ) { // Activate when section is about 1/3 visible
+            current = section.getAttribute("id");
+          }
+        });
+
+        navLinks.forEach((link) => {
+          link.classList.remove("active");
+          if (link.getAttribute("href").substring(1) === current) {
+            link.classList.add("active");
+          }
+        });
+      });
+
+      // Entrance animations
+      const observerOptions = {
+        threshold: 0.1, 
+        rootMargin: "0px 0px -50px 0px", 
+      };
+
+      const observer = new IntersectionObserver((entries, obs) => { 
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.style.opacity = "1";
+            entry.target.style.transform = "translateY(0)";
+            obs.unobserve(entry.target); 
+          }
+        });
+      }, observerOptions);
+
+      document
+        .querySelectorAll(".question-card, .step-card, .viz-preview .chart-header-journey, .viz-preview #line-chart-container-journey, .viz-preview .cta-button, .content-section .section-header, .final-cta .section-title, .final-cta .section-description, .final-cta .cta-button")
+        .forEach((el) => {
+          el.style.opacity = "0"; 
+          el.style.transform = "translateY(30px)"; 
+          el.style.transition = "opacity 0.6s ease-out, transform 0.6s ease-out"; 
+          observer.observe(el);
+        });
+    </script>
   </body>
 </html>
