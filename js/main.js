@@ -98,16 +98,16 @@ function toUSD(moneyStr) {
             numeric = 0;
         }
         var rate = currencyRatesToUSD[symbol];
-        if (!rate) { // If symbol is '$' but not in rates, assume USD (rate=1)
+        if (!rate) { 
              if (symbol === '$') rate = 1;
              else {
                 // console.warn(`No rate for symbol: ${symbol}, using direct parse for: ${txt}`);
-                return numeric; // Fallback to parsed number if currency is unknown and not '$'
+                return numeric; 
              }
         }
         return numeric * rate;
     }
-    var codeMatch = txt.match(/([A-Z]{3})$/i); // Made regex case-insensitive
+    var codeMatch = txt.match(/([A-Z]{3})$/i); 
     if (codeMatch) {
         var code = codeMatch[1].toUpperCase();
         var numericCode = parseFloat(txt.replace(/[^0-9\.]/g, ""));
@@ -117,7 +117,7 @@ function toUSD(moneyStr) {
         var codeRate = currencyRatesToUSD[code];
         if (!codeRate) {
             // console.warn(`No rate for code: ${code}, using direct parse for: ${txt}`);
-            return numericCode; // Fallback
+            return numericCode; 
         }
         return numericCode * codeRate;
     }
@@ -129,15 +129,15 @@ function toUSD(moneyStr) {
 function fmtMoney(n) {
     if (isNaN(n) || n === null) return "N/A";
     if (Math.abs(n) >= 1000000000) {
-        return "$" + (n / 1000000000).toFixed(1) + "B"; // Corrected to B for billions
+        return "$" + (n / 1000000000).toFixed(1) + "B"; 
     }
     if (Math.abs(n) >= 1000000) {
-        return "$" + (n / 1000000).toFixed(1) + "M"; // Corrected to M for millions
+        return "$" + (n / 1000000).toFixed(1) + "M"; 
     }
     if (Math.abs(n) >= 1000) {
         return "$" + (n / 1000).toFixed(0) + "K";
     }
-    return "$" + n.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: (n % 1 === 0 ? 0 : 2)}); // Show decimals only if they exist
+    return "$" + n.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: (n % 1 === 0 ? 0 : 2)});
 }
 
 // function to clean up an format the data, like in stars, writers, ect
@@ -149,9 +149,9 @@ function cleanArray(str) {
         return String(str).replace(/[\[\]']+/g, "");
     }
 }
-// Global variables for sorting in table (not used by scatter but part of provided helpers)
-var currentSortKey = "BudgetUSD";
-var currentAscending = false;
+
+var currentSortKey = "BudgetUSD"; // Not used by scatter plot but part of provided helpers
+var currentAscending = false;    // Not used by scatter plot but part of provided helpers
 
 
 // --- Data loading and initial setup ---
@@ -184,6 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+
 // --- INITIALIZATION FUNCTIONS ---
 function initializeFullDashboardPage() {
     console.log("Initializing Full Dashboard Page");
@@ -194,7 +195,6 @@ function initializeFullDashboardPage() {
             updateChartTitleAndLabels('chart-title', 'selected-country', dashboardChartG);
         }
     }
-    // Scatter plot elements are created/updated within updateHighBudgetScatter the first time it's called
     processMovieData(); 
     setupDashboardControlsEventListeners(); 
     updateDashboardStatistics(movieCountsByYear[selectedYear] || {});
@@ -211,7 +211,7 @@ function initializeJourneyPageLineChart() {
     const journeyChartG = createLineChart('line-chart-container-journey', 'line-chart-journey');
     if (journeyChartG) {
         updateChartTitleAndLabels('chart-title-journey', 'selected-country-journey', journeyChartG);
-        processMovieData(); // Ensure data is processed for journey chart
+        processMovieData();
         updateLineChart('line-chart-journey', journeyChartG);
     }
 }
@@ -284,7 +284,7 @@ function processMovieData() {
 }
 
 
-// --- MAP FUNCTIONS (Largely unchanged) ---
+// --- MAP FUNCTIONS ---
 function createMap() {
     const mapContainer = document.getElementById('map-container');
     if (!mapContainer) { console.warn("Map container not found for createMap."); return; }
@@ -384,21 +384,21 @@ function updateMapLegend(colorScale, maxValue) {
         .style("fill", "#E0E0E0").text(formatValue(maxValue / 2)); 
 }
 
-function handleMapMouseOver(d) {
+function handleMapMouseOver(d_map) { // Renamed 'd' to 'd_map' to avoid scope collision
     if (currentPage !== 'full_dashboard') return;
     d3.select(this).transition().duration(100)
         .attr("stroke-width", 1.5) 
         .attr("stroke", "#82aaff"); 
 }
 
-function handleMapMouseMove(d) { 
+function handleMapMouseMove(d_map) { 
     if (currentPage !== 'full_dashboard') return;
     const tooltipEl = document.querySelector('.tooltip'); 
     if (!tooltipEl || !movieCountsByYear) return;
     const dataForYear = movieCountsByYear[selectedYear] || {};
-    const countryData = dataForYear[d.properties.name];
+    const countryData = dataForYear[d_map.properties.name];
     const totalMoviesInYear = d3.sum(Object.values(dataForYear), item => item.count || 0);
-    let content = `<strong>${d.properties.name}</strong><br>`;
+    let content = `<strong>${d_map.properties.name}</strong><br>`;
     if (!countryData) {
         content += '<div class="tooltip-row">No data for current filters</div>';
     } else {
@@ -407,7 +407,7 @@ function handleMapMouseMove(d) {
         const avgRatingDisplay = ratingCount > 0 ? (ratingSum / ratingCount).toFixed(2) : "N/A";
         let revenueDisplay = "N/A";
         if (revenue > 0) { 
-            revenueDisplay = fmtMoney(revenue); // Use fmtMoney for consistency
+            revenueDisplay = fmtMoney(revenue); 
         } else if (revenue === 0 && count > 0) revenueDisplay = "$0";
         const revenueLabelText = adjustForInflation ? "Revenue (2025 $)" : "Revenue";
         content += `<div class="tooltip-row">Movies: ${count} (${percentOfTotal}%)</div>`;
@@ -416,9 +416,10 @@ function handleMapMouseMove(d) {
     }
     tooltipEl.innerHTML = content;
     tooltipEl.style.opacity = 0.95; 
-    if (d3.event) { 
-        tooltipEl.style.left = (d3.event.pageX) + "px"; 
-        tooltipEl.style.top = (d3.event.pageY) + "px";
+    const event = d3.event; // For D3 v5
+    if (event) { 
+        tooltipEl.style.left = (event.pageX + 10) + "px"; 
+        tooltipEl.style.top = (event.pageY - 28) + "px"; // Adjusted for better positioning
     }
 }
 
@@ -431,9 +432,9 @@ function handleMapMouseOut() {
     if (tooltipEl) tooltipEl.style.opacity = 0;
 }
 
-function handleMapCountryClick(d) {
+function handleMapCountryClick(d_map) {
     if (currentPage !== 'full_dashboard') return;
-    selectedCountry = d.properties.name; 
+    selectedCountry = d_map.properties.name; 
     const dashboardChartG = d3.select("#line-chart").select("g"); 
     if (!dashboardChartG.empty()) {
          updateChartTitleAndLabels('chart-title', 'selected-country', dashboardChartG);
@@ -446,7 +447,7 @@ function handleMapCountryClick(d) {
     }
 }
 
-// --- LINE CHART FUNCTIONS (Largely unchanged) ---
+// --- LINE CHART FUNCTIONS ---
 const lineMargin = {top: 30, right: 40, bottom: 60, left: 90};
 function createLineChart(containerId = "line-chart-container", svgId = "line-chart") {
     const container = document.getElementById(containerId);
@@ -727,7 +728,8 @@ function updateLineChart(svgId = "line-chart", targetChartG) {
     dots.exit().transition().duration(250).attr("r", 0).remove();
     dots.enter().append("circle").attr("class", "dot")
         .merge(dots)
-        .on("mouseover", function(event, d_dot) { // Use event, d_dot for D3 v6+
+        .on("mouseover", function(d_dot) { // For D3 v5, d_dot is the data, event is d3.event
+            const event = d3.event; 
             const tooltipEl = document.querySelector('.tooltip'); 
             if (!tooltipEl && currentPage !== 'journey') return; 
             let valueDisplay, valueLabel, countDisplay = d_dot.count.toLocaleString();
@@ -736,14 +738,14 @@ function updateLineChart(svgId = "line-chart", targetChartG) {
                 if (currentChartDisplayMode === "total") valueDisplay = d_dot.value.toLocaleString();
             } else {
                 const val = d_dot.value; 
-                valueDisplay = fmtMoney(val); // Use fmtMoney
+                valueDisplay = fmtMoney(val); 
                 valueLabel = currentChartDisplayMode === "total" ? (adjustForInflation ? "Total Revenue (2025$)" : "Total Revenue") : (adjustForInflation ? "Avg Revenue (2025$)" : "Avg Revenue");
             }
             if (tooltipEl && currentPage === 'full_dashboard') { 
                 tooltipEl.innerHTML = `<strong>${d_dot.year}</strong><br><div class="tooltip-row">${valueLabel}: ${valueDisplay}</div><div class="tooltip-row">Movies: ${countDisplay}</div>`;
                 tooltipEl.style.opacity = 0.95;
-                tooltipEl.style.left = (event.pageX) + "px";
-                tooltipEl.style.top = (event.pageY) + "px";
+                tooltipEl.style.left = (event.pageX + 10) + "px";
+                tooltipEl.style.top = (event.pageY - 28) + "px";
             }
             d3.select(this).transition().duration(100).attr("r", 6);
         })
@@ -759,229 +761,276 @@ function updateLineChart(svgId = "line-chart", targetChartG) {
 }
 
 // --- USER-PROVIDED SCATTER PLOT FUNCTIONS (ADAPTED FOR DARK THEME) ---
+// function to draw a scatter plot of budget vs revenue
 function updateHighBudgetScatter() {
-    if (!combined_movies_data) {
-        // console.warn("Combined movie data not available for scatter plot.");
-        return;
-    }
+  // stop if the movie data hasn't loaded yet
+  if (!combined_movies_data) {
+    // console.warn("Combined movie data not available for scatter plot.");
+    return;
+  }
+
     const yearLabel = document.getElementById("budget-year-label");
-    if (yearLabel) {
-        yearLabel.textContent = `(${selectedYear})`;
+  // get the selected year and update the label on the page
+  if (yearLabel) { // Ensure the label element exists
+       yearLabel.textContent = `(${selectedYear})`;
     }
 
-    var movies = [];
-    for (var i = 0; i < combined_movies_data.length; i++) {
-        var d_movie_loop = combined_movies_data[i]; // Renamed to avoid conflict
-        if (parseInt(d_movie_loop.Year, 10) !== selectedYear) {
-            continue;
-        }
-        var budget = toUSD(d_movie_loop.budget);
-        var revenue = toUSD(d_movie_loop.grossWorldWWide);
-        var rating = parseFloat(d_movie_loop.Rating);
-        if (budget <= 0 || revenue <= 0 || isNaN(rating)) {
-            continue;
-        }
-        movies.push({
-            Title: d_movie_loop.Title,
-            BudgetUSD: budget,
-            RevenueUSD: revenue,
-            Rating: rating.toFixed(1),
-            Country: (d_movie_loop.countries_origin ? d_movie_loop.countries_origin : "").replace(/[\[\]']+/g, ""),
-            Description: d_movie_loop.description ? d_movie_loop.description : "",
-            Stars: cleanArray(d_movie_loop.stars),
-            Writers: cleanArray(d_movie_loop.writers),
-            Directors: cleanArray(d_movie_loop.directors),
-            Genres: cleanArray(d_movie_loop.genres),
-            Languages: cleanArray(d_movie_loop.Languages)
-        });
+
+  // create an array to hold movie info for the scatter plot
+  var movies = [];
+  for (var i = 0; i < combined_movies_data.length; i++) {
+    var d_movie_loop = combined_movies_data[i]; // Renamed to avoid conflict
+
+    // skip this movie if it's not from the selected year
+    if (parseInt(d_movie_loop.Year, 10) !== selectedYear) {
+      continue;
     }
 
-    movies.sort(function(a, b) {
-        return b.BudgetUSD - a.BudgetUSD;
+    // converty budget and revenue to numbers in usd
+    var budget = toUSD(d_movie_loop.budget);
+    var revenue = toUSD(d_movie_loop.grossWorldWWide);
+    var rating = parseFloat(d_movie_loop.Rating);
+
+    // skip movied with missing/invalid numbers
+    if (budget <= 0 || revenue <= 0 || isNaN(rating)) {
+      continue;
+    }
+
+    // save cleaned up movies for later
+    movies.push({
+      Title: d_movie_loop.Title,
+      BudgetUSD: budget,
+      RevenueUSD: revenue,
+      Rating: rating.toFixed(1), // Already formatted to 1 decimal place
+      Country: (d_movie_loop.countries_origin ? cleanArray(d_movie_loop.countries_origin) : "N/A"), // Use cleanArray
+      Description: d_movie_loop.description ? d_movie_loop.description : "",
+      Stars: cleanArray(d_movie_loop.stars),
+      Writers: cleanArray(d_movie_loop.writers),
+      Directors: cleanArray(d_movie_loop.directors),
+      Genres: cleanArray(d_movie_loop.genres),
+      Languages: cleanArray(d_movie_loop.Languages)
     });
-    movies = movies.slice(0, 25);
+  }
 
-    var container = document.getElementById("scatter-container");
+  // sort movies by biggest mudget and keep only top 25
+  movies.sort(function(a, b) {
+    return b.BudgetUSD - a.BudgetUSD;
+  });
+  movies = movies.slice(0, 25);
+
+  // set up the chart container size
+  var container = document.getElementById("scatter-container");
     if (!container) {
-        console.warn("Scatter container #scatter-container not found.");
+        console.warn("Scatter plot container #scatter-container not found during update.");
         return;
     }
-    var fullWidth = container.clientWidth;
-    var margin = { top: 40, right: 40, bottom: 60, left: 80 };
-    var width = fullWidth - margin.left - margin.right;
-    var height = 500 - margin.top - margin.bottom; // SVG height is 500
+  var fullWidth = container.clientWidth;
+  var margin = { top: 40, right: 40, bottom: 60, left: 80 };
+  var width = fullWidth - margin.left - margin.right;
+  var height = 500 - margin.top - margin.bottom; // SVG height is 500
 
-    if (!scatterSvg || scatterSvg.empty()) { // Check if scatterSvg is not initialized or selection is empty
-        const scatterPlotSVG = d3.select("#scatter-plot");
-        if (scatterPlotSVG.empty()) {
-            console.warn("#scatter-plot SVG element not found in HTML.");
+  // only set up the chart once, or if it needs re-initialization (e.g. after resize)
+  if (!scatterSvg || scatterSvg.empty()) {
+        const scatterPlotSVGEl = d3.select("#scatter-plot");
+        if (scatterPlotSVGEl.empty()){
+            console.warn("SVG element #scatter-plot not found in HTML for scatter plot.");
             return;
         }
-        scatterSvg = scatterPlotSVG.attr("width", fullWidth).attr("height", 500);
+    scatterSvg = scatterPlotSVGEl
+      .attr("width", fullWidth)
+      .attr("height", 500);
         
-        scatterSvg.selectAll("*").remove(); // Clear previous content if re-initializing
+        scatterSvg.selectAll("*").remove(); // Clear previous content
 
-        scatterView = scatterSvg.append("g")
-            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-        
-        scatterView.append("rect")
-            .attr("class", "bg-rect-scatter") 
-            .attr("fill", "transparent") 
-            .attr("width", width)
-            .attr("height", height);
+    scatterView = scatterSvg.append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-        dotsScatter = scatterView.append("g").attr("class", "dots-scatter"); 
-        xAxisScatterG = scatterView.append("g").attr("class", "x-axis scatter-axis"); 
-        yAxisScatterG = scatterView.append("g").attr("class", "y-axis scatter-axis"); 
+    scatterView.append("rect")
+      .attr("class", "bg-rect-scatter") // More specific class
+      .attr("fill", "transparent") // Dark theme: transparent background
+      .attr("width", width)
+      .attr("height", height);
 
-        scatterView.append("text")
-            .attr("class", "x-label scatter-label") 
+    dotsScatter = scatterView.append("g").attr("class", "dots-scatter"); // Specific class
+    xAxisScatterG = scatterView.append("g").attr("class", "x-axis scatter-axis"); // Specific class
+    yAxisScatterG = scatterView.append("g").attr("class", "y-axis scatter-axis"); // Specific class
+
+    scatterView.append("text")
+      .attr("class", "x-label scatter-label")  // Specific class
             .attr("text-anchor", "middle")
-            .attr("x", width / 2) 
-            .attr("y", height + margin.bottom - 15)
-            .style("font-size", "12px") 
-            .style("fill", "#e0e0e0") 
-            .text("Budget (USD)");
+            .attr("x", width / 2) // Centered within the innerWidth
+      .attr("y", height + margin.bottom - 15) // Adjusted position
+      .style("font-size", "12px") // Consistent style
+      .style("fill", "#e0e0e0") // Dark theme color
+      .text("Budget (USD)");
 
-        scatterView.append("text")
-            .attr("class", "y-axis-label scatter-label") 
-            .attr("text-anchor", "middle")
-            .attr("transform", "rotate(-90)")
-            .attr("x", -height / 2)
-            .attr("y", -margin.left + 25) 
-            .style("font-size", "12px")
-            .style("fill", "#e0e0e0");
+    scatterView.append("text")
+      .attr("class", "y-axis-label scatter-label") // Specific class
+      .attr("text-anchor", "middle")
+      .attr("transform", "rotate(-90)")
+      .attr("x", -height / 2)
+      .attr("y", -margin.left + 25) // Adjusted for better positioning
+      .style("font-size", "12px")
+      .style("fill", "#e0e0e0"); // Text set dynamically
 
-        scatterZoom = d3.zoom()
-            .scaleExtent([0.5, 10])
-            .translateExtent([[-width, -height], [2 * width, 2 * height]])
-            .on("zoom", zoomed); 
+    scatterZoom = d3.zoom()
+      .scaleExtent([0.5, 10])
+      .translateExtent([[-width, -height], [2 * width, 2 * height]])
+      .on("zoom", zoomed); // zoomed is defined below
 
-        scatterSvg.call(scatterZoom);
-    } else { // If already initialized, just update sizes
-        scatterSvg.attr("width", fullWidth);
-        scatterView.select(".bg-rect-scatter").attr("width", width).attr("height", height);
-        scatterView.select(".x-label.scatter-label").attr("x", width / 2).attr("y", height + margin.bottom -15);
-        scatterView.select(".y-axis-label.scatter-label").attr("x", -height / 2).attr("y", -margin.left + 25);
-        xAxisScatterG.attr("transform", "translate(0," + height + ")"); // Ensure axis group is at bottom
+    scatterSvg.call(scatterZoom);
+  } else { // If SVG exists, update its size and positions of static elements
+      scatterSvg.attr("width", fullWidth);
+      scatterView.select(".bg-rect-scatter").attr("width", width).attr("height", height);
+      scatterView.select(".x-label.scatter-label").attr("x", width / 2).attr("y", height + margin.bottom - 15);
+      scatterView.select(".y-axis-label.scatter-label").attr("x", -height/2).attr("y", -margin.left + 25);
+      xAxisScatterG.attr("transform", "translate(0," + height + ")"); // Make sure x-axis is at the bottom
     }
-    
-    function zoomed() { // Internal zoom handler
-        if (!d3.event || !d3.event.transform) return;
+
+    // This internal 'zoomed' function is specific to updateHighBudgetScatter
+    function zoomed() {
+        if (!d3.event || !d3.event.transform) return; // D3 v5 event check
         var t = d3.event.transform;
-        var zx = t.rescaleX(xScatter);
-        var zy = t.rescaleY(yScatter);
-        xAxisScatterG.call(d3.axisBottom(zx).tickFormat(fmtMoney).tickSizeOuter(0));
-        yAxisScatterG.call(showProfitRatio ? d3.axisLeft(zy).ticks(6).tickSizeOuter(0) : d3.axisLeft(zy).tickFormat(fmtMoney).tickSizeOuter(0));
+        var zx = t.rescaleX(xScatter); // xScatter is the scale for this plot
+        var zy = t.rescaleY(yScatter); // yScatter is the scale for this plot
+        
+        xAxisScatterG.call(d3.axisBottom(zx).tickFormat(fmtMoney).tickSizeOuter(0))
+            .selectAll("text").style("fill", "#a0a0b0").style("font-size", "10px");
+        xAxisScatterG.select(".domain").style("stroke", "#718096");
+
+
+        yAxisScatterG.call(showProfitRatio ? d3.axisLeft(zy).ticks(6).tickSizeOuter(0) : d3.axisLeft(zy).tickFormat(fmtMoney).tickSizeOuter(0))
+            .selectAll("text").style("fill", "#a0a0b0").style("font-size", "10px");
+        yAxisScatterG.select(".domain").style("stroke", "#718096");
+
+
         dotsScatter.selectAll("circle")
             .attr("cx", function(d_circle) { return zx(d_circle.BudgetUSD); })
-            .attr("cy", function(d_circle) { return zy(yValue(d_circle)); });
+            .attr("cy", function(d_circle) { return zy(yValue(d_circle)); }); // yValue is defined below
     }
 
-    xScatter = d3.scaleLinear()
-        .domain([0, d3.max(movies, function(d_movie) { return d_movie.BudgetUSD; }) * 1.1 || 1])
-        .range([0, width])
-        .nice();
+  // set up x axis scale to use movie budgets using scaleLinear
+  xScatter = d3.scaleLinear()
+    .domain([0, d3.max(movies, function(d_movie) { return d_movie.BudgetUSD; }) * 1.1 || 1]) // Ensure domain max is at least 1 if no movies
+    .range([0, width])
+    .nice();
 
-    var yValue = function(d_movie) {
-        if (showProfitRatio) {
-            return d_movie.BudgetUSD > 0 ? d_movie.RevenueUSD / d_movie.BudgetUSD : 0;
-        } else {
-            return d_movie.RevenueUSD;
-        }
-    };
+  // decide what to show on y axis, either revenue or ratio
+  var yValue = function(d_movie) {
+    if (showProfitRatio) {
+      return d_movie.BudgetUSD > 0 ? d_movie.RevenueUSD / d_movie.BudgetUSD : 0;
+    } else {
+      return d_movie.RevenueUSD;
+    }
+  };
 
-    yScatter = d3.scaleLinear()
-        .domain([0, d3.max(movies, function(d_movie) { return yValue(d_movie); }) * 1.1 || 1])
-        .range([height, 0])
-        .nice();
-    
+  // set up the y axis scale using scaleLinear
+  yScatter = d3.scaleLinear()
+    .domain([0, d3.max(movies, function(d_movie) { return yValue(d_movie); }) * 1.1 || 1]) // Ensure domain max is at least 1
+    .range([height, 0])
+    .nice();
+
+    // Clear previous no-data message if any, before drawing new axes/dots
     scatterView.selectAll(".no-data-scatter-text").remove();
+
     if (movies.length === 0) {
         scatterView.append("text")
             .attr("class", "no-data-scatter-text")
             .attr("x", width / 2)
             .attr("y", height / 2)
             .attr("text-anchor", "middle")
-            .style("fill", "#a0a0b0")
+            .style("fill", "#a0a0b0") // Dark theme text color
             .text(`No movie data for ${selectedYear} with current filters.`);
-    }
-
-    var xAxisFormat = d3.axisBottom(xScatter).tickFormat(fmtMoney).tickSizeOuter(0);
-    var yAxisFormat = showProfitRatio ? d3.axisLeft(yScatter).ticks(6).tickSizeOuter(0) : d3.axisLeft(yScatter).tickFormat(fmtMoney).tickSizeOuter(0);
-    
-    xAxisScatterG.attr("transform", "translate(0," + height + ")") // Ensure x-axis is at the bottom
+        // Clear axes if no data, or set to default domains
+        xAxisScatterG.selectAll("*").remove();
+        yAxisScatterG.selectAll("*").remove();
+    } else {
+      // axis formatting
+      var xAxisFormat = d3.axisBottom(xScatter).tickFormat(fmtMoney).tickSizeOuter(0);
+      var yAxisFormat = showProfitRatio ? d3.axisLeft(yScatter).ticks(6).tickSizeOuter(0) : d3.axisLeft(yScatter).tickFormat(fmtMoney).tickSizeOuter(0);
+     
+      // draw x and y axis
+      xAxisScatterG
+        .attr("transform", "translate(0," + height + ")") // Make sure x-axis is at the bottom
         .transition().duration(500)
         .call(xAxisFormat)
-        .selectAll("text")
-            .style("fill", "#a0a0b0")
-            .style("font-size", "10px");
-    xAxisScatterG.select(".domain").style("stroke", "#718096"); // Style axis line
+            .selectAll("text") // Style axis text for dark theme
+                .style("fill", "#a0a0b0")
+                .style("font-size", "10px");
+        xAxisScatterG.select(".domain").style("stroke", "#718096"); // Style axis line
 
 
-    yAxisScatterG.transition().duration(500)
-        .call(yAxisFormat)
-        .selectAll("text")
-            .style("fill", "#a0a0b0")
-            .style("font-size", "10px");
-    yAxisScatterG.select(".domain").style("stroke", "#718096"); // Style axis line
-
-
-    scatterView.select(".y-axis-label.scatter-label").text(showProfitRatio ? "Revenue ÷ Budget Ratio" : "Revenue (USD)");
-
-    var dots = dotsScatter.selectAll("circle").data(movies, function(d_movie) { return d_movie.Title + d_movie.Year; });
-
-    dots.exit()
-        .transition().duration(300)
-        .attr("r", 0)
-        .remove();
-
-    dots.enter()
-        .append("circle")
-        .attr("r", 0)
-        .attr("fill", "#82aaff") 
-        .attr("stroke", "#0f0f23") 
-        .attr("stroke-width", 1.5)
-        .attr("cx", function(d_movie) { return xScatter(d_movie.BudgetUSD); })
-        .attr("cy", function(d_movie) { return yScatter(yValue(d_movie)); })
-        .on("mouseover", function(event, d_movie) { 
-            const tooltipEl = d3.select("#movie-tooltip");
-            tooltipEl.html(
-                "<strong>" + d_movie.Title + "</strong><br>" +
-                "<div><strong>Country:</strong> " + (d_movie.Country || "N/A") + "</div>" +
-                "<div><strong>Rating:</strong> " + d_movie.Rating + "</div>" +
-                "<div><strong>Budget:</strong> " + fmtMoney(d_movie.BudgetUSD) + "</div>" +
-                "<div><strong>Revenue:</strong> " + fmtMoney(d_movie.RevenueUSD) + "</div>" +
-                (showProfitRatio ? "<div><strong>Revenue ÷ Budget:</strong> " + (d_movie.BudgetUSD > 0 ? (d_movie.RevenueUSD / d_movie.BudgetUSD).toFixed(2) : "N/A") + "</div>" : "")
-            )
-            .style("left", (event.pageX + 12) + "px")
-            .style("top", (event.pageY - 20) + "px")
-            .style("opacity", 0.95);
-            d3.select(this).transition().duration(100).attr("r", 8);
-        })
-        .on("mousemove", function(event) { 
-            d3.select("#movie-tooltip")
-            .style("left", (event.pageX + 12) + "px")
-            .style("top", (event.pageY - 20) + "px");
-        })
-        .on("mouseout", function() { 
-            d3.select("#movie-tooltip").style("opacity", 0);
-            d3.select(this).transition().duration(100).attr("r", 6);
-        })
-        .merge(dots) // Merge enter and update selections
+      yAxisScatterG
         .transition().duration(500)
-        .attr("cx", function(d_movie) { return xScatter(d_movie.BudgetUSD); })
+        .call(yAxisFormat)
+            .selectAll("text") // Style axis text for dark theme
+                .style("fill", "#a0a0b0")
+                .style("font-size", "10px");
+        yAxisScatterG.select(".domain").style("stroke", "#718096"); // Style axis line
+
+    }
+  // update the label potition/text
+  scatterView.select(".y-axis-label.scatter-label").text(showProfitRatio ? "Revenue ÷ Budget Ratio" : "Revenue (USD)");
+
+  // set the movie data to the dots in the chart
+  var dots = dotsScatter.selectAll("circle").data(movies, function(d_movie) { return d_movie.Title + d_movie.Year; }); // Using a more unique key
+
+  // remove old dots
+  dots.exit()
+    .transition().duration(300)
+    .attr("r", 0)
+    .remove();
+
+  // add new dots for new data
+  dots.enter()
+    .append("circle")
+    .attr("r", 0) // Start with radius 0 for entry animation
+    .attr("fill", "#82aaff") // Consistent dot color for dark theme
+    .attr("stroke", "#0f0f23") // Dark theme stroke, matching line chart dots
+    .attr("stroke-width", 1.5)
+        // Set initial positions for entering dots before transition
+        .attr("cx", function(d_movie) { return xScatter(d_movie.BudgetUSD); }) 
         .attr("cy", function(d_movie) { return yScatter(yValue(d_movie)); })
-        .attr("r", 6);
+    .on("mouseover", function(d_movie) { // D3 v5 event handling: d_movie is the data
+      const event = d3.event; // Access event object
+      const tooltipEl = d3.select("#movie-tooltip");
+      tooltipEl.html(
+        "<strong>" + d_movie.Title + "</strong><br>" +
+        "<div><strong>Country:</strong> " + (d_movie.Country || "N/A") + "</div>" +
+        "<div><strong>Rating:</strong> " + d_movie.Rating + "</div>" + // Rating is already string "X.Y"
+        "<div><strong>Budget:</strong> " + fmtMoney(d_movie.BudgetUSD) + "</div>" +
+        "<div><strong>Revenue:</strong> " + fmtMoney(d_movie.RevenueUSD) + "</div>" +
+        (showProfitRatio ? "<div><strong>Revenue ÷ Budget:</strong> " + (d_movie.BudgetUSD > 0 ? (d_movie.RevenueUSD / d_movie.BudgetUSD).toFixed(2) : "N/A") + "</div>" : "")
+      )
+      .style("left", (event.pageX + 12) + "px")
+      .style("top", (event.pageY - 28) + "px") // Position tooltip above cursor
+      .style("opacity", 0.95);
+            d3.select(this).transition().duration(100).attr("r", 8); // Enlarge dot
+    })
+    .on("mousemove", function() { // d3.event is available here in v5
+      const event = d3.event;
+      d3.select("#movie-tooltip")
+      .style("left", (event.pageX + 12) + "px")
+      .style("top", (event.pageY - 28) + "px");
+    })
+    .on("mouseout", function() { // d3.event is available here in v5
+      d3.select("#movie-tooltip").style("opacity", 0);
+            d3.select(this).transition().duration(100).attr("r", 6); // Reset dot size
+    })
+        .merge(dots) // Merge enter and update selections for transitions
+    .transition().duration(500)
+    .attr("cx", function(d_movie) { return xScatter(d_movie.BudgetUSD); })
+    .attr("cy", function(d_movie) { return yScatter(yValue(d_movie)); })
+    .attr("r", 6); // Final radius
 }
 
 function resetScatterZoom() {
-    const svg = d3.select("#scatter-plot");
-    if (!svg.empty() && scatterZoom) { 
-        svg.transition()
-            .duration(750)
-            .call(scatterZoom.transform, d3.zoomIdentity);
-    }
+  const svg = d3.select("#scatter-plot"); // Refers to the SVG for the scatter plot
+  if (!svg.empty() && scatterZoom) { // Check if svg selection is not empty and scatterZoom is defined
+    svg.transition()
+      .duration(750)
+      .call(scatterZoom.transform, d3.zoomIdentity);
+  }
 }
 
 
@@ -997,13 +1046,14 @@ function setupDashboardControlsEventListeners() {
     const votesValueEl = document.getElementById('votes-value');
     const metricRadiosEl = document.querySelectorAll('input[name="map-metric"]');
     const resetBtnEl = document.getElementById('reset-btn');
-    const resetZoomBtnEl = document.getElementById('reset-zoom-btn'); 
+    const resetZoomBtnEl = document.getElementById('reset-zoom-btn'); // For map
     const inflationButtonEl = document.getElementById('inflation-btn');
     const chartModeButtonEl = document.getElementById('chart-mode-btn');
     const minChartYearSliderEl = document.getElementById('min-year-slider');
     const minChartYearValueEl = document.getElementById('min-year-value');
     const maxChartYearSliderEl = document.getElementById('max-year-slider');
     const maxChartYearValueEl = document.getElementById('max-year-value');
+    
     const scatterResetBtnEl = document.getElementById('scatter-reset-btn');
     const profitRatioToggleEl = document.getElementById('toggle-profit-ratio');
 
@@ -1012,7 +1062,7 @@ function setupDashboardControlsEventListeners() {
         if (yearValueEl) yearValueEl.textContent = selectedYear;
         updateMapVisualization(); 
         updateDashboardStatistics(movieCountsByYear[selectedYear] || {}); 
-        updateHighBudgetScatter(); // Update scatter plot for new year
+        updateHighBudgetScatter(); 
     });
 
     if (ratingSliderEl) ratingSliderEl.addEventListener('input', function() {
@@ -1060,8 +1110,11 @@ function setupDashboardControlsEventListeners() {
             inflationButtonEl.classList.remove('active');
         }
         if (chartModeButtonEl) {
-             chartModeButtonEl.textContent = mapMetric === "rating" ? 'Movie Count per Year' : 'Total Revenue per Year'; // This should be based on default mapMetric
-             chartModeButtonEl.classList.remove('active');
+             chartModeButtonEl.textContent = (mapMetric === "rating" && chartMode === "average") ? 'Movie Count per Year' : 
+                                           (mapMetric === "rating" && chartMode === "total") ? 'Avg Rating per Year' :
+                                           (mapMetric !== "rating" && chartMode === "average") ? 'Total Revenue per Year' : 
+                                           'Avg Revenue per Movie';
+             if (chartMode === "average") chartModeButtonEl.classList.remove('active'); else chartModeButtonEl.classList.add('active');
         }
         if (minChartYearSliderEl) {
             minChartYearSliderEl.value = minChartYear;
@@ -1081,17 +1134,17 @@ function setupDashboardControlsEventListeners() {
         if(selectedCountryEl) selectedCountryEl.textContent = selectedCountry; 
          const dashboardChartG = d3.select("#line-chart").select("g");
             if(!dashboardChartG.empty()) {
-                updateChartTitleAndLabels('chart-title', 'selected-country', dashboardChartG); // updateLineChart called by processMovieData
+                updateChartTitleAndLabels('chart-title', 'selected-country', dashboardChartG);
             }
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
     if (resetZoomBtnEl) resetZoomBtnEl.addEventListener('click', resetMapZoom);
 
-    if (scatterResetBtnEl) {
+    if (scatterResetBtnEl) { // Listener for scatter plot reset button
         scatterResetBtnEl.addEventListener("click", resetScatterZoom);
     }
-    if (profitRatioToggleEl) {
+    if (profitRatioToggleEl) { // Listener for profit ratio toggle
         profitRatioToggleEl.addEventListener("change", function (e) {
             showProfitRatio = e.target.checked;
             updateHighBudgetScatter(); 
@@ -1107,12 +1160,14 @@ function setupDashboardControlsEventListeners() {
 
     if (chartModeButtonEl) chartModeButtonEl.addEventListener('click', function() {
         chartMode = chartMode === "average" ? "total" : "average";
+        // Update button text based on current mapMetric and new chartMode
         if (mapMetric === "rating") {
             this.textContent = chartMode === "total" ? 'Avg Rating per Year' : 'Movie Count per Year';
-        } else {
+        } else { // Revenue
             this.textContent = chartMode === "total" ? 'Avg Revenue per Movie' : 'Total Revenue per Year';
         }
         this.classList.toggle('active', chartMode === "total");
+
         const dashboardChartG = d3.select("#line-chart").select("g");
         if(!dashboardChartG.empty()) {
             updateChartTitleAndLabels('chart-title', 'selected-country', dashboardChartG);
@@ -1166,7 +1221,7 @@ function updateDashboardStatistics(dataForYear) {
     avgRatingEl.textContent = avgRatingValue.toFixed(1);
     const revenueText = totalRevenueValue > 0 ? 
         fmtMoney(totalRevenueValue) : 
-        (totalMovies > 0 && Object.values(dataForYear).some(d => d.revenue !== undefined) ? '$0' : 'N/A'); // Use fmtMoney
+        (totalMovies > 0 && Object.values(dataForYear).some(d => d.revenue !== undefined) ? '$0' : 'N/A'); 
     totalRevenueEl.textContent = revenueText;
     totalRevenueLabelEl.textContent = adjustForInflation ? 'Total Revenue (2025 $)' : 'Total Revenue';
 }
@@ -1187,7 +1242,7 @@ window.addEventListener('resize', debounce(() => {
     if (currentPage === 'journey') {
         const journeyContainer = document.getElementById('line-chart-container-journey');
         const journeySVG = document.getElementById('line-chart-journey');
-        if(journeyContainer && journeySVG && !d3.select("#line-chart-journey").select("g").empty()){ // check if g exists
+        if(journeyContainer && journeySVG && !d3.select("#line-chart-journey").select("g").empty()){ 
             const journeyChartG = createLineChart('line-chart-container-journey', 'line-chart-journey'); 
             if(journeyChartG){
                 updateChartTitleAndLabels('chart-title-journey', 'selected-country-journey', journeyChartG);
@@ -1198,13 +1253,14 @@ window.addEventListener('resize', debounce(() => {
     if (currentPage === 'full_dashboard') {
         const dashboardContainer = document.getElementById('line-chart-container');
         const dashboardSVG = document.getElementById('line-chart');
-         if(dashboardContainer && dashboardSVG && !d3.select("#line-chart").select("g").empty()){ // check if g exists
+         if(dashboardContainer && dashboardSVG && !d3.select("#line-chart").select("g").empty()){
             const dashboardChartG = createLineChart('line-chart-container', 'line-chart'); 
             if(dashboardChartG){
                 updateChartTitleAndLabels('chart-title', 'selected-country', dashboardChartG);
                 updateLineChart('line-chart', dashboardChartG);
             }
         }
-        updateHighBudgetScatter(); // Call the user's function on resize
+        updateHighBudgetScatter(); 
     }
 }, 250));
+
