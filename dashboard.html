@@ -108,13 +108,15 @@
       }
 
       .summary-stats {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        display: flex;
+        flex-wrap: wrap;
+        /* grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); */
         gap: 1.5rem;
         margin-bottom: 2rem;
       }
 
       .stat-card {
+        flex: 1;
         background: rgba(40, 40, 65, 0.7);
         padding: 1.5rem;
         border-radius: 12px;
@@ -715,7 +717,7 @@
               </div>
             </div>
 
-            <!-- Line Chart Controls -->
+            <!-- Line Chart Controls
             <div class="control-group">
               <label for="min-year-slider">
                 📊 Chart Min Year:
@@ -743,7 +745,7 @@
                 value="2025"
                 step="1"
               />
-            </div>
+            </div> -->
 
             <div class="control-group">
               <label>Chart & Data Options:</label>
@@ -805,6 +807,40 @@
               controls to adjust data display.
             </p>
           </div>
+
+          <div class="controls-section">
+            <div class="controls">
+              <div class="control-group">
+              <label for="min-year-slider">
+                📊 Chart Min Year:
+                <span class="control-value" id="min-year-value">1925</span>
+              </label>
+              <input
+                type="range"
+                id="min-year-slider"
+                min="1925"
+                max="2025"
+                value="1925"
+                step="1"
+              />
+            </div>
+            <div class="control-group">
+              <label for="max-year-slider">
+                📊 Chart Max Year:
+                <span class="control-value" id="max-year-value">2025</span>
+              </label>
+              <input
+                type="range"
+                id="max-year-slider"
+                min="1925"
+                max="2025"
+                value="2025"
+                step="1"
+              />
+            </div> 
+            </div>
+          </div>
+
           <div id="line-chart-container">
             <svg id="line-chart"></svg>
             <!-- Optional: <div class="loading">Spinner for line chart</div> -->
