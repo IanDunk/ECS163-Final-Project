@@ -82,37 +82,29 @@ function debounce(func, wait) {
 // Data loading and initial setup
 document.addEventListener('DOMContentLoaded', () => {
     // Determine current page based on unique element IDs
-    if (document.getElementById('map-container') && !document.getElementById('line-chart-container-journey')) {
-        currentPage = 'dashboard';
-    } else if (document.getElementById('line-chart-container-journey') && !document.getElementById('map-container')) {
+    if (document.getElementById('map-container')) {
+        currentPage = 'full_dashboard'; // If map exists, treat as full dashboard
+    } else if (document.getElementById('line-chart-container-journey')) {
         currentPage = 'journey';
-    } else if (document.getElementById('map-container') && document.getElementById('line-chart-container')) {
-        currentPage = 'full_dashboard'; // For the new scenario where dashboard has map AND its own line chart
-    }
-     else {
-        console.warn("Page type undetermined or conflicting/missing containers found.");
-        // Potentially set currentPage to a default or error state if needed
-        return; // Stop further execution if page type isn't clear
+    } else {
+        console.warn("Page type undetermined or missing containers found.");
+        return;
     }
 
     console.log("Current page determined as:", currentPage);
 
     Promise.all([
-        d3.csv(currentPage === 'journey' ? "../data/combined_movies_data.csv" : "data/combined_movies_data.csv"), 
-        d3.json(currentPage === 'journey' ? "../data/custom.geo.json" : "data/custom.geo.json")
+        d3.csv("data/combined_movies_data.csv"),
+        d3.json("data/custom.geo.json")
     ]).then(([movieData, geoData]) => {
         combined_movies_data = movieData;
         customGeoJSON = geoData;
-        processMovieData(); 
-
-        if (currentPage === 'dashboard') { // Only Map
-            initializeFullDashboardPage(); 
-        } else if (currentPage === 'journey') { // Only Journey Line Chart
+        
+        if (currentPage === 'journey') {
             initializeJourneyPageLineChart();
-        } else if (currentPage === 'full_dashboard') { // Map + Dashboard Line Chart
+        } else {
             initializeFullDashboardPage();
         }
-
     }).catch(error => {
         console.error("Error loading data:", error);
         if (document.getElementById('map-container')) {
@@ -142,22 +134,30 @@ function initializeDashboardPageOnlyMap() { // For dashboard.html with map only
 }
 
 function initializeFullDashboardPage() { // For dashboard.html with map AND its own line chart
-    console.log("Initializing Full Dashboard Page (Map & Line Chart)");
-    // Initialize Map
-    createMap();
-    updateMapVisualization();
+    console.log("Initializing Full Dashboard Page");
     
-    // Initialize Dashboard's Line Chart
-    // Use original IDs for the dashboard's line chart
-    const dashboardChartG = createLineChart('line-chart-container', 'line-chart'); 
-    if (dashboardChartG) {
-        updateChartTitleAndLabels('chart-title', 'selected-country', dashboardChartG);
-        updateLineChart('line-chart', dashboardChartG);
+    // Create visualizations first
+    createMap();
+    
+    // Create line chart if container exists
+    if (document.getElementById('line-chart-container')) {
+        const dashboardChartG = createLineChart('line-chart-container', 'line-chart');
+        if (dashboardChartG) {
+            updateChartTitleAndLabels('chart-title', 'selected-country', dashboardChartG);
+        }
     }
     
-    // Setup all controls for this page
-    setupDashboardControlsEventListeners(); // This needs to handle map AND line chart controls
-    updateDashboardStatistics(movieCountsByYear[selectedYear] || {}); 
+    // Create scatter plot if container exists
+    if (document.getElementById('scatter-container')) {
+        createScatterPlot();
+    }
+    
+    // Process data and update visualizations
+    processMovieData();
+    
+    // Setup event listeners and update statistics
+    setupDashboardControlsEventListeners();
+    updateDashboardStatistics(movieCountsByYear[selectedYear] || {});
 }
 
 
@@ -179,7 +179,6 @@ function initializeJourneyPageLineChart() { // For index.html (narrative with li
 
 // --- DATA PROCESSING ---
 function processMovieData() {
-    // This function remains largely the same
     movieCountsByYear = {};
     if (!combined_movies_data) return;
 
@@ -230,6 +229,28 @@ function processMovieData() {
             movieCountsByYear[year][country].ratingSum += rating;
             movieCountsByYear[year][country].ratingCount++;
         }
+    }
+
+    // Add scatter plot data processing
+    updateScatterPlot();
+    
+    // Update visualizations only if they exist
+    if (svgMap) {
+        updateMapVisualization();
+    }
+    
+    const dashboardChartG = d3.select("#line-chart").select("g");
+    if (!dashboardChartG.empty()) {
+        updateLineChart('line-chart', dashboardChartG);
+    }
+    
+    if (scatterSvg && dotsScatter) {
+        updateScatterPlot();
+    }
+    
+    // Update statistics if on dashboard
+    if (currentPage === 'full_dashboard') {
+        updateDashboardStatistics(movieCountsByYear[selectedYear] || {});
     }
 }
 
@@ -425,6 +446,27 @@ function handleMapCountryClick(d) {
         }
     }
     
+}
+
+function handleCountryClick(d) {
+    selectedCountry = d.properties.name;
+    
+    // Update country name display
+    document.getElementById('selected-country').textContent = selectedCountry;
+    
+    // Update line chart
+    const dashboardChartG = d3.select("#line-chart").select("g");
+    if(!dashboardChartG.empty()) {
+        updateChartTitleAndLabels('chart-title', 'selected-country', dashboardChartG);
+        updateLineChart('line-chart', dashboardChartG);
+    }
+    
+    // Smooth scroll to line chart
+    const lineChartSection = document.querySelector('#line-chart-container');
+    if(lineChartSection) {
+        const vizContainer = lineChartSection.closest('.viz-container');
+        if(vizContainer) vizContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 }
 
 // --- LINE CHART SPECIFIC FUNCTIONS ---
@@ -829,7 +871,9 @@ function setupDashboardControlsEventListeners() {
     const minChartYearValue = document.getElementById('min-year-value'); // For full_dashboard
     const maxChartYearSlider = document.getElementById('max-year-slider'); // For full_dashboard
     const maxChartYearValue = document.getElementById('max-year-value'); // For full_dashboard
-    
+    const scatterResetBtn = document.getElementById('scatter-reset-btn');
+    const profitRatioToggle = document.getElementById('toggle-profit-ratio');
+
     if (yearSlider) yearSlider.addEventListener('input', function() {
         selectedYear = +this.value;
         if (yearValue) yearValue.textContent = selectedYear;
@@ -1003,6 +1047,23 @@ function setupDashboardControlsEventListeners() {
             if(!dashboardChartG.empty()) updateLineChart('line-chart', dashboardChartG);
         });
     }
+
+    if (scatterResetBtn) {
+        scatterResetBtn.addEventListener('click', function() {
+            if (scatterSvg && scatterZoom) {
+                scatterSvg.transition()
+                    .duration(750)
+                    .call(scatterZoom.transform, d3.zoomIdentity);
+            }
+        });
+    }
+
+    if (profitRatioToggle) {
+        profitRatioToggle.addEventListener('change', function(e) {
+            showProfitRatio = e.target.checked;
+            updateScatterPlot();
+        });
+    }
 }
 
 function updateDashboardStatistics(dataForYear) {
@@ -1038,6 +1099,19 @@ function updateDashboardStatistics(dataForYear) {
     totalRevenueLabelEl.textContent = adjustForInflation ? 'Total Revenue (2025 $)' : 'Total Revenue';
 }
 
+function fmtMoney(n) {
+    if (Math.abs(n) >= 1e9) {
+        return "$" + (n / 1e9).toFixed(1) + "B";
+    }
+    if (Math.abs(n) >= 1e6) {
+        return "$" + (n / 1e6).toFixed(1) + "M";
+    }
+    if (Math.abs(n) >= 1e3) {
+        return "$" + (n / 1e3).toFixed(0) + "K";
+    }
+    return "$" + n.toLocaleString();
+}
+
 window.addEventListener('resize', debounce(() => {
     if ((currentPage === 'dashboard' || currentPage === 'full_dashboard') && svgMap) {
         const mapContainer = document.getElementById('map-container');
@@ -1066,4 +1140,215 @@ window.addEventListener('resize', debounce(() => {
             updateLineChart('line-chart', d3.select("#line-chart").select("g"));
         }
     }
+    if (scatterSvg) {
+        createScatterPlot(); // Recreate scatter plot with new dimensions
+        updateScatterPlot(); // Update data
+    }
 }, 250));
+
+let scatterZoom;
+let showProfitRatio = false;
+let scatterSvg, scatterView, dotsScatter;
+let xScatter, yScatter;
+let xAxisScatterG, yAxisScatterG;
+
+function createScatterPlot() {
+    const container = document.getElementById('scatter-container');
+    if (!container) {
+        console.warn("Scatter plot container not found");
+        return;
+    }
+
+    // Clear any existing content
+    d3.select("#scatter-plot").selectAll("*").remove();
+
+    const width = container.clientWidth;
+    const height = 500;
+    const margin = { top: 40, right: 40, bottom: 60, left: 80 };
+    const innerWidth = width - margin.left - margin.right;
+    const innerHeight = height - margin.top - margin.bottom;
+
+    scatterSvg = d3.select("#scatter-plot")
+        .attr("width", width)
+        .attr("height", height);
+
+    scatterView = scatterSvg.append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    // Add white background for dark theme
+    scatterView.append("rect")
+        .attr("class", "bg")
+        .attr("fill", "transparent")
+        .attr("width", innerWidth)
+        .attr("height", innerHeight);
+
+    // Create groups for dots/axes
+    dotsScatter = scatterView.append("g").attr("class", "dots");
+    xAxisScatterG = scatterView.append("g").attr("class", "x-axis");
+    yAxisScatterG = scatterView.append("g").attr("class", "y-axis");
+
+    // Add axis labels
+    scatterView.append("text")
+        .attr("class", "x-label")
+        .attr("text-anchor", "middle")
+        .attr("y", height - margin.bottom + 45)
+        .attr("x", innerWidth / 2)
+        .style("fill", "#e0e0e0")
+        .text("Budget (USD)");
+
+    scatterView.append("text")
+        .attr("class", "y-axis-label")
+        .attr("text-anchor", "middle")
+        .attr("transform", "rotate(-90)")
+        .attr("y", -68)
+        .attr("x", -innerHeight / 2)
+        .style("fill", "#e0e0e0")
+        .text("Revenue (USD)");
+
+    // Setup zoom
+    scatterZoom = d3.zoom()
+        .scaleExtent([0.5, 10])
+        .translateExtent([[-width, -height], [2 * width, 2 * height]])
+        .on("zoom", zoomed);
+
+    scatterSvg.call(scatterZoom);
+}
+
+function zoomed() {
+    const transform = d3.event.transform;
+    const newX = transform.rescaleX(xScatter);
+    const newY = transform.rescaleY(yScatter);
+
+    // Update axes
+    xAxisScatterG.call(d3.axisBottom(newX).tickFormat(d3.format("~s")));
+    yAxisScatterG.call(showProfitRatio ? 
+        d3.axisLeft(newY).ticks(6) :
+        d3.axisLeft(newY).tickFormat(d3.format("~s")));
+
+    // Update dots positions
+    dotsScatter.selectAll("circle")
+        .attr("cx", d => newX(parseFloat(d.budget)))
+        .attr("cy", d => newY(showProfitRatio ? 
+            parseFloat(d.grossWorldWWide) / parseFloat(d.budget) :
+            parseFloat(d.grossWorldWWide)));
+}
+
+function showMovieTooltip(d) {
+    const tooltip = d3.select("#movie-tooltip");
+    const budget = parseFloat(d.budget);
+    const revenue = parseFloat(d.grossWorldWWide);
+    const ratio = budget > 0 ? revenue / budget : 0;
+    
+    tooltip.html(`
+        <strong>${d.Title}</strong>
+        <div><strong>Budget:</strong> ${fmtMoney(budget)}</div>
+        <div><strong>Revenue:</strong> ${fmtMoney(revenue)}</div>
+        <div><strong>Revenue/Budget:</strong> ${ratio.toFixed(2)}</div>
+        <div><strong>Rating:</strong> ${d.Rating}</div>
+    `)
+    .style("opacity", 0.95)
+    .style("left", (d3.event.pageX + 10) + "px")
+    .style("top", (d3.event.pageY - 10) + "px");
+
+    d3.select(this)
+        .transition()
+        .duration(100)
+        .attr("r", 8);
+}
+
+function updateMovieTooltip() {
+    d3.select("#movie-tooltip")
+        .style("left", (d3.event.pageX + 10) + "px")
+        .style("top", (d3.event.pageY - 10) + "px");
+}
+
+function hideMovieTooltip() {
+    d3.select("#movie-tooltip").style("opacity", 0);
+    d3.select(this)
+        .transition()
+        .duration(100)
+        .attr("r", 6);
+}
+
+function updateScatterPlot() {
+    // Check if scatter plot elements exist
+    if (!scatterSvg || !dotsScatter || !xAxisScatterG || !yAxisScatterG) {
+        console.warn("Scatter plot not initialized yet");
+        return;
+    }
+
+    if (!combined_movies_data) {
+        console.warn("No movie data available");
+        return;
+    }
+
+    const yearLabel = document.getElementById("budget-year-label");
+    if (yearLabel) {
+        yearLabel.textContent = `(${selectedYear})`;
+    }
+
+    const movies = combined_movies_data
+        .filter(d => {
+            const year = parseInt(d.Year, 10);
+            if (year !== selectedYear) return false;
+            
+            const budget = parseFloat(d.budget?.replace(/[^0-9.]/g, "") || 0);
+            const revenue = parseFloat(d.grossWorldWWide?.replace(/[^0-9.]/g, "") || 0);
+            const rating = parseFloat(d.Rating);
+            
+            return budget > 0 && revenue > 0 && !isNaN(rating);
+        })
+        .sort((a, b) => parseFloat(b.budget) - parseFloat(a.budget))
+        .slice(0, 25);
+
+    // Update scales
+    const container = document.getElementById('scatter-container');
+    const width = container.clientWidth;
+    const margin = { top: 40, right: 40, bottom: 60, left: 80 };
+    const innerWidth = width - margin.left - margin.right;
+    const innerHeight = 500 - margin.top - margin.bottom;
+
+    xScatter = d3.scaleLinear()
+        .domain([0, d3.max(movies, d => parseFloat(d.budget)) * 1.1])
+        .range([0, innerWidth])
+        .nice();
+
+    const yValue = showProfitRatio ? 
+        d => parseFloat(d.grossWorldWWide) / parseFloat(d.budget) :
+        d => parseFloat(d.grossWorldWWide);
+
+    yScatter = d3.scaleLinear()
+        .domain([0, d3.max(movies, yValue) * 1.1])
+        .range([innerHeight, 0])
+        .nice();
+
+    // Update axes
+    xAxisScatterG
+        .attr("transform", `translate(0,${innerHeight})`)
+        .call(d3.axisBottom(xScatter).tickFormat(d3.format("~s")));
+
+    yAxisScatterG
+        .call(showProfitRatio ? 
+            d3.axisLeft(yScatter).ticks(6) :
+            d3.axisLeft(yScatter).tickFormat(d3.format("~s")));
+
+    // Update dots
+    const dots = dotsScatter.selectAll("circle")
+        .data(movies, d => d.Title);
+
+    dots.exit().remove();
+
+    const dotsEnter = dots.enter()
+        .append("circle")
+        .attr("r", 6)
+        .attr("fill", "#82aaff")
+        .attr("stroke", "#0f0f23")
+        .attr("stroke-width", 1.5);
+
+    dots.merge(dotsEnter)
+        .attr("cx", d => xScatter(parseFloat(d.budget)))
+        .attr("cy", d => yScatter(yValue(d)))
+        .on("mouseover", showMovieTooltip)
+        .on("mousemove", updateMovieTooltip)
+        .on("mouseout", hideMovieTooltip);
+}

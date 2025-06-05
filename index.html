@@ -195,43 +195,39 @@
 
       /* Content Sections */
       .content-section {
-        background: #1a1a2e; /* Dark panel background */
+        background: #1a1a2e;
         margin: 2rem 0;
         border-radius: 20px;
-        padding: 3rem 0; /* Adjusted padding */
+        padding: 3rem 0;
         position: relative;
-        border: 1px solid rgba(255,255,255,0.08);
-      }
-
-      .content-section:nth-child(even) { /* Not used currently, but good for alternating styles */
-        background: #16213e; 
+        border: 1px solid rgba(255, 255, 255, 0.08);
       }
 
       .section-header {
         text-align: center;
-        margin-bottom: 3rem; /* Adjusted margin */
+        margin-bottom: 3rem;
       }
 
       .section-number {
         font-size: 1rem;
         color: #667eea;
         font-weight: 600;
-        margin-bottom: 0.75rem; /* Adjusted margin */
+        margin-bottom: 0.75rem;
         text-transform: uppercase;
         letter-spacing: 2px;
       }
 
       .section-title {
-        font-size: 2.5rem; /* Adjusted size */
+        font-size: 2.5rem;
         font-weight: 700;
-        margin-bottom: 1rem; /* Adjusted margin */
+        margin-bottom: 1rem;
         color: #ffffff;
       }
 
       .section-description {
-        font-size: 1.15rem; /* Adjusted size */
-        color: #a0a0b0; /* Lighter gray for better contrast */
-        max-width: 750px; /* Adjusted width */
+        font-size: 1.15rem;
+        color: #a0a0b0;
+        max-width: 750px;
         margin: 0 auto;
         line-height: 1.7;
       }
@@ -239,17 +235,17 @@
       /* Question Cards */
       .question-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); /* Adjusted minmax */
-        gap: 1.5rem; /* Adjusted gap */
-        margin-top: 2.5rem; /* Adjusted margin */
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 1.5rem;
+        margin-top: 2.5rem;
       }
 
       .question-card {
-        background: rgba(255, 255, 255, 0.03); /* Slightly less transparent */
-        backdrop-filter: blur(8px); /* Slightly less blur */
-        border: 1px solid rgba(255, 255, 255, 0.08); /* Softer border */
-        border-radius: 12px; /* Softer radius */
-        padding: 1.75rem; /* Adjusted padding */
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 1.75rem;
         transition: all 0.3s ease;
         position: relative;
         overflow: hidden;
@@ -266,172 +262,179 @@
       }
 
       .question-card:hover {
-        transform: translateY(-5px) scale(1.02); /* Added scale effect */
-        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.35); /* Adjusted shadow */
-        border-color: rgba(102, 126, 234, 0.4); /* Brighter border on hover */
+        transform: translateY(-5px) scale(1.02);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.35);
+        border-color: rgba(102, 126, 234, 0.4);
       }
 
       .question-icon {
-        font-size: 2.25rem; /* Adjusted size */
-        margin-bottom: 0.75rem; /* Adjusted margin */
-        /* Emojis will use default color, ensure they are visible or use SVG icons */
+        font-size: 2.25rem;
+        margin-bottom: 0.75rem;
       }
 
       .question-title {
-        font-size: 1.25rem; /* Adjusted size */
+        font-size: 1.25rem;
         font-weight: 600;
         margin-bottom: 0.75rem;
         color: #ffffff;
       }
 
       .question-text {
-        color: #b0b0c0; /* Lighter text */
+        color: #b0b0c0;
         line-height: 1.6;
-        font-size: 0.95rem; /* Adjusted size */
+        font-size: 0.95rem;
       }
 
       /* Visualization Preview for Line Chart */
       .viz-preview {
-        background: rgba(255, 255, 255, 0.03);
+        background: rgba(30, 30, 55, 0.7);
         border-radius: 16px;
         padding: 2rem;
-        margin: 3rem auto; /* Centered and adjusted margin */
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        max-width: 900px; /* Max width for the chart section */
+        margin: 3rem auto;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        max-width: 900px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
       }
-      
-      .chart-header-journey { /* Styling for the line chart header on this page */
-          padding-bottom: 1rem; 
-          border-bottom: 1px solid rgba(255,255,255,0.1); 
-          margin-bottom: 1.5rem;
-          text-align: center;
+
+      .chart-header-journey {
+        padding-bottom: 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        margin-bottom: 1.5rem;
+        text-align: center;
       }
       .chart-header-journey h3 {
-          margin: 0 0 0.5rem 0; 
-          color: #ffffff; 
-          font-size: 1.5rem; 
+        margin: 0 0 0.5rem 0;
+        color: #ffffff;
+        font-size: 1.5rem;
+      }
+      .chart-header-journey h3 #selected-country-journey {
+        color: #82aaff;
+        font-weight: 700;
       }
       .chart-header-journey p {
-          margin: 0; 
-          color: #a0a0b0; 
-          font-size: 1rem; 
+        margin: 0;
+        color: #a0a0b0;
+        font-size: 1rem;
       }
 
       #line-chart-container-journey {
-          width: 100%; 
-          height: 450px; 
-          position: relative; 
-          background: transparent; /* Ensure it's transparent to show .viz-preview bg */
-          border-radius: 8px; 
-          /* padding: 1rem;  Padding might interfere with SVG positioning */
+        width: 100%;
+        height: 450px;
+        position: relative;
+        background: transparent;
+        border-radius: 8px;
       }
-      #line-chart-journey { /* The SVG element itself */
-          display: block; 
-          margin: auto;
-          background-color: transparent; /* Explicitly transparent */
+      #line-chart-journey {
+        display: block;
+        margin: auto;
+        background-color: transparent;
       }
-      /* Styling for D3 generated Line Chart elements (axes, grid, text) */
       #line-chart-journey .axis path,
       #line-chart-journey .axis line {
-          stroke: #718096; /* Lighter gray for axis lines */
+        stroke: #718096;
       }
       #line-chart-journey .axis text {
-          fill: #A0A0B0; /* Light gray for tick text */
-          font-size: 11px; 
+        fill: #a0a0b0;
+        font-size: 11px;
       }
-      #line-chart-journey .axis-label { /* X and Y axis titles */
-          fill: #E0E0E0; /* Bright text for axis titles */
-          font-size: 13px; 
+      #line-chart-journey .axis-label {
+        fill: #e0e0e0;
+        font-size: 13px;
       }
       #line-chart-journey .grid line {
-          stroke: rgba(255, 255, 255, 0.1); /* Very subtle light grid lines */
-          stroke-opacity: 0.7;
+        stroke: rgba(255, 255, 255, 0.1);
+        stroke-opacity: 0.7;
       }
-      #line-chart-journey .grid path { /* Hide domain path for grid */
-          stroke-width: 0;
+      #line-chart-journey .grid path {
+        stroke-width: 0;
       }
       #line-chart-journey .line-path {
-          /* stroke: #667eea; Default, set in JS */
+        stroke: #82aaff;
+        stroke-width: 2.5px;
+        fill: none;
       }
       #line-chart-journey .trend-line {
-          /* stroke: #e74c3c; Default, set in JS */
+        stroke: #f59e0b;
+        stroke-width: 2px;
+        stroke-dasharray: "6,6";
+        fill: none;
       }
       #line-chart-journey .dot {
-          /* fill: #667eea; stroke: #0f0f23; Defaults, set in JS */
-          /* Ensure dot stroke matches the chart's effective background */
+        fill: #82aaff;
+        stroke: #0f0f23;
+        stroke-width: 1.5px;
       }
-      #line-chart-journey .no-data-text { /* If JS adds this class */
-          fill: #A0A0B0;
-          font-size: 16px;
-          text-anchor: middle;
+      #line-chart-journey .no-data-text {
+        fill: #a0a0b0;
+        font-size: 16px;
+        text-anchor: middle;
       }
-      .loading-journey { /* Loading message for the chart */
-          position: absolute; 
-          top: 50%; 
-          left: 50%; 
-          transform: translate(-50%, -50%); 
-          color: #a0a0b0; 
-          font-size: 1rem;
+      .loading-journey {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #a0a0b0;
+        font-size: 1rem;
       }
-
 
       /* Journey Steps */
       .journey-steps {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 1.5rem; /* Adjusted gap */
-        margin: 3rem 0; /* Adjusted margin */
+        gap: 1.5rem;
+        margin: 3rem 0;
       }
 
       .step-card {
         text-align: center;
-        padding: 1.75rem; /* Adjusted padding */
+        padding: 1.75rem;
         position: relative;
-        background: rgba(255,255,255,0.02); /* Subtle background for step cards */
+        background: rgba(255, 255, 255, 0.02);
         border-radius: 12px;
-        border: 1px solid rgba(255,255,255,0.05);
+        border: 1px solid rgba(255, 255, 255, 0.05);
         transition: transform 0.3s ease, box-shadow 0.3s ease;
       }
       .step-card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 10px 20px rgba(0,0,0,0.25);
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
       }
 
       .step-number {
-        width: 50px; /* Adjusted size */
+        width: 50px;
         height: 50px;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.3rem; /* Adjusted size */
+        font-size: 1.3rem;
         font-weight: 700;
-        margin: 0 auto 1rem; /* Adjusted margin */
+        margin: 0 auto 1rem;
         color: white;
         box-shadow: 0 4px 10px rgba(102, 126, 234, 0.25);
       }
 
       .step-title {
-        font-size: 1.2rem; /* Adjusted size */
+        font-size: 1.2rem;
         font-weight: 600;
-        margin-bottom: 0.75rem; /* Adjusted margin */
+        margin-bottom: 0.75rem;
         color: #ffffff;
       }
 
       .step-description {
-        color: #a0a0b0; /* Lighter text */
+        color: #a0a0b0;
         line-height: 1.6;
-        font-size: 0.9rem; /* Adjusted size */
+        font-size: 0.9rem;
       }
 
       /* Final CTA */
       .final-cta {
         text-align: center;
-        padding: 3rem 0; /* Adjusted padding */
+        padding: 3rem 0;
         background: radial-gradient(
           ellipse at center,
-          rgba(102, 126, 234, 0.08) 0%, /* Slightly more visible gradient */
+          rgba(102, 126, 234, 0.08) 0%,
           transparent 70%
         );
       }
@@ -439,19 +442,41 @@
       /* Mobile Responsive */
       @media (max-width: 768px) {
         .nav-links {
-          display: none; 
+          display: none;
         }
-        .hero h1 { font-size: 2.5rem; }
-        .hero-subtitle { font-size: 1.2rem; }
-        .hero-description { font-size: 1rem; }
-        .section-title { font-size: 2rem; }
-        .question-grid { grid-template-columns: 1fr; }
-        .container { padding: 0 1rem; }
-        .section { padding: 80px 0 30px; }
-        .viz-preview { padding: 1.5rem; }
-        #line-chart-container-journey { height: 350px; } /* Adjust chart height for mobile */
-        .chart-header-journey h3 { font-size: 1.25rem; }
-        .chart-header-journey p { font-size: 0.9rem; }
+        .hero h1 {
+          font-size: 2.5rem;
+        }
+        .hero-subtitle {
+          font-size: 1.2rem;
+        }
+        .hero-description {
+          font-size: 1rem;
+        }
+        .section-title {
+          font-size: 2rem;
+        }
+        .question-grid {
+          grid-template-columns: 1fr;
+        }
+        .container {
+          padding: 0 1rem;
+        }
+        .section {
+          padding: 80px 0 30px;
+        }
+        .viz-preview {
+          padding: 1.5rem;
+        }
+        #line-chart-container-journey {
+          height: 350px;
+        }
+        .chart-header-journey h3 {
+          font-size: 1.25rem;
+        }
+        .chart-header-journey p {
+          font-size: 0.9rem;
+        }
       }
 
       /* Scroll Progress Indicator */
@@ -463,7 +488,7 @@
         height: 3px;
         background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
         z-index: 1001;
-        transition: width 0.1s ease-out; /* Smoother progress */
+        transition: width 0.1s ease-out;
       }
     </style>
   </head>
@@ -517,7 +542,7 @@
 
           <div class="question-grid">
             <div class="question-card">
-              <div class="question-icon">🌍</div> 
+              <div class="question-icon">🌍</div>
               <h3 class="question-title">Global Distribution</h3>
               <p class="question-text">
                 Which countries dominate movie production? How has the global
@@ -526,7 +551,7 @@
               </p>
             </div>
             <div class="question-card">
-              <div class="question-icon">🌟</div> 
+              <div class="question-icon">🌟</div>
               <h3 class="question-title">Quality vs. Quantity</h3>
               <p class="question-text">
                 Do countries that produce more movies also produce better ones?
@@ -535,7 +560,7 @@
               </p>
             </div>
             <div class="question-card">
-              <div class="question-icon">💰</div> 
+              <div class="question-icon">💰</div>
               <h3 class="question-title">Economic Evolution</h3>
               <p class="question-text">
                 How have movie revenues changed over time? What impact has
@@ -544,7 +569,7 @@
               </p>
             </div>
             <div class="question-card">
-              <div class="question-icon">⏳</div> 
+              <div class="question-icon">⏳</div>
               <h3 class="question-title">Temporal Patterns</h3>
               <p class="question-text">
                 Are there distinct eras in cinema history visible in the data?
@@ -553,7 +578,7 @@
               </p>
             </div>
             <div class="question-card">
-              <div class="question-icon">🎬</div> 
+              <div class="question-icon">🎬</div>
               <h3 class="question-title">Cultural Impact</h3>
               <p class="question-text">
                 What makes a movie culturally significant? Can we identify
@@ -562,7 +587,7 @@
               </p>
             </div>
             <div class="question-card">
-              <div class="question-icon">🔍</div> 
+              <div class="question-icon">🔍</div>
               <h3 class="question-title">Hidden Stories</h3>
               <p class="question-text">
                 What unexpected trends emerge when we look at the data from
@@ -620,23 +645,37 @@
 
           <div class="viz-preview">
             <div class="chart-header-journey">
-              <h3 >
-                <span id="chart-title-journey">Revenue Trends Over Time</span>: 
-                <span id="selected-country-journey" style="color: #667eea; font-weight: 700;">United States of America</span>
+              <h3>
+                <span id="chart-title-journey">Revenue Trends Over Time</span>:
+                <span id="selected-country-journey"
+                  >United States of America</span
+                >
               </h3>
               <p>
-                Illustrative trend for the selected country. For full interactivity and controls, please visit the main dashboard.
+                Illustrative trend for the selected country. For full
+                interactivity and controls, please visit the main dashboard.
               </p>
             </div>
             <div id="line-chart-container-journey">
               <svg id="line-chart-journey"></svg>
               <div class="loading-journey">Loading chart data...</div>
             </div>
-            <div style="text-align: center; margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1);">
-              <p style="color: #cccccc; margin-bottom: 1.5rem; font-size: 1.1rem;">
+            <div
+              style="
+                text-align: center;
+                margin-top: 2.5rem;
+                padding-top: 1.5rem;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+              "
+            >
+              <p
+                style="color: #cccccc; margin-bottom: 1.5rem; font-size: 1.1rem"
+              >
                 Want to explore data for other countries or adjust filters?
               </p>
-              <a href="dashboard.html" class="cta-button">Launch Full Interactive Dashboard</a>
+              <a href="dashboard.html" class="cta-button"
+                >Launch Full Interactive Dashboard</a
+              >
             </div>
           </div>
         </div>
@@ -651,14 +690,16 @@
             Now that you understand our mission, let's dive into the data and
             discover the hidden stories of global cinema together.
           </p>
-          <a href="dashboard.html" class="cta-button" style="margin-top: 2rem">Start Exploring</a>
+          <a href="dashboard.html" class="cta-button" style="margin-top: 2rem"
+            >Start Exploring</a
+          >
         </div>
       </div>
     </section>
 
     <script src="https://d3js.org/d3.v5.min.js"></script>
-    <!-- Ensure this path is correct for your project structure -->
-    <script src="js/main.js"></script> 
+    <!-- Ensure this path is correct for your project structure AND add type="module" -->
+    <script type="module" src="js/main.js"></script>
 
     <script>
       // Smooth scrolling for navigation links
@@ -669,7 +710,7 @@
           if (target) {
             target.scrollIntoView({
               behavior: "smooth",
-              block: "start", 
+              block: "start",
             });
           }
         });
@@ -685,11 +726,11 @@
 
         const sections = document.querySelectorAll(".section");
         const navLinks = document.querySelectorAll(".nav-links a");
-        let current = "introduction"; // Default to introduction
+        let current = "introduction";
 
         sections.forEach((section) => {
           const sectionTop = section.offsetTop;
-          if (pageYOffset >= sectionTop - (window.innerHeight / 3) ) { // Activate when section is about 1/3 visible
+          if (pageYOffset >= sectionTop - window.innerHeight / 3) {
             current = section.getAttribute("id");
           }
         });
@@ -704,26 +745,29 @@
 
       // Entrance animations
       const observerOptions = {
-        threshold: 0.1, 
-        rootMargin: "0px 0px -50px 0px", 
+        threshold: 0.1,
+        rootMargin: "0px 0px -50px 0px",
       };
 
-      const observer = new IntersectionObserver((entries, obs) => { 
+      const observer = new IntersectionObserver((entries, obs) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             entry.target.style.opacity = "1";
             entry.target.style.transform = "translateY(0)";
-            obs.unobserve(entry.target); 
+            obs.unobserve(entry.target);
           }
         });
       }, observerOptions);
 
       document
-        .querySelectorAll(".question-card, .step-card, .viz-preview .chart-header-journey, .viz-preview #line-chart-container-journey, .viz-preview .cta-button, .content-section .section-header, .final-cta .section-title, .final-cta .section-description, .final-cta .cta-button")
+        .querySelectorAll(
+          ".question-card, .step-card, .viz-preview .chart-header-journey, .viz-preview #line-chart-container-journey, .viz-preview .cta-button, .content-section .section-header, .final-cta .section-title, .final-cta .section-description, .final-cta .cta-button"
+        )
         .forEach((el) => {
-          el.style.opacity = "0"; 
-          el.style.transform = "translateY(30px)"; 
-          el.style.transition = "opacity 0.6s ease-out, transform 0.6s ease-out"; 
+          el.style.opacity = "0";
+          el.style.transform = "translateY(30px)";
+          el.style.transition =
+            "opacity 0.6s ease-out, transform 0.6s ease-out";
           observer.observe(el);
         });
     </script>

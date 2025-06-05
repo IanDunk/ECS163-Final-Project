@@ -88,6 +88,8 @@
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
       }
 
+      /* Using .section-title for scatter plot, .viz-title for map/original line chart */
+      .section-title,
       .viz-title {
         font-size: 1.5rem;
         font-weight: 600;
@@ -98,9 +100,11 @@
       }
 
       .viz-container {
-        background: transparent;
-        border-radius: 12px;
-        padding: 0;
+        /* Parent for map, line chart, scatter plot SVGs */
+        background: transparent; /* Will show .viz-section background */
+        border-radius: 12px; /* Rounded corners for the viz area if needed */
+        padding: 0; /* Padding usually handled by D3 margins or specific content */
+        position: relative; /* For absolute positioning of loading spinners if used inside */
       }
 
       .summary-stats {
@@ -141,6 +145,7 @@
       }
 
       .controls {
+        /* Used by current dashboard.html, consistent with new scatter plot section's need */
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         gap: 1.5rem 2rem;
@@ -315,6 +320,7 @@
       }
 
       .reset-zoom-button {
+        /* Specific for map/scatter zoom reset */
         background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
         border-color: rgba(139, 92, 246, 0.7);
       }
@@ -360,6 +366,26 @@
       .control-group .button + .button {
         margin-top: 0.75rem;
       }
+      .button-group {
+        /* For scatter plot controls */
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+      }
+      .button-group label {
+        color: #c0c0d0;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .button-group input[type="checkbox"] {
+        width: auto;
+        height: auto;
+        accent-color: #82aaff;
+      }
 
       #map-container {
         width: 100%;
@@ -397,34 +423,42 @@
         }
       }
 
-      .tooltip {
+      .tooltip,
+      #movie-tooltip {
         position: absolute;
         padding: 10px 15px;
         font-size: 0.9rem;
-        background: #1a1a2e;
+        background: #1f2937;
         color: #e0e0e0;
-        border: 1px solid #4a5568;
+        border: 1px solid #374151;
         border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         pointer-events: none;
         opacity: 0;
         transition: opacity 0.2s ease, transform 0.2s ease;
-        max-width: 280px;
+        max-width: 300px;
         z-index: 1001;
         transform: translate(-50%, calc(-100% - 15px));
       }
-      .tooltip strong {
+      .tooltip strong,
+      #movie-tooltip strong {
         color: #ffffff;
         display: block;
-        margin-bottom: 0.25rem;
+        margin-bottom: 0.35rem;
       }
-      .tooltip .tooltip-row {
-        margin: 0.3rem 0;
-        font-size: 0.85rem;
-        color: #b0b0c0;
+      .tooltip .tooltip-row,
+      #movie-tooltip div {
+        margin: 0.35rem 0;
+        font-size: 0.875rem;
+        color: #cbd5e1;
+      }
+      #movie-tooltip div strong {
+        /* Specific for scatter plot tooltip labels */
+        color: #93c5fd;
+        font-weight: 600;
       }
 
-      /* Line Chart Specific Styles for Dark Theme on Dashboard Page */
+      /* Line Chart Styles for Dark Theme */
       .chart-header {
         margin-bottom: 1.5rem;
         padding-bottom: 1rem;
@@ -436,13 +470,16 @@
         font-size: 1.25rem;
       }
       .chart-header h3 #selected-country {
+        /* ID for dashboard line chart selected country */
         color: #82aaff;
         font-weight: 700;
       }
+      .chart-description, /* For scatter plot and line chart descriptions */
       .chart-header p {
         margin: 0;
         color: #a0a0b0;
-        font-size: 0.875rem;
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
       }
 
       #line-chart-container {
@@ -478,21 +515,61 @@
       #line-chart .line-path {
         stroke: #82aaff;
         stroke-width: 2.5px;
+        fill: none;
       }
       #line-chart .trend-line {
         stroke: #f59e0b;
         stroke-width: 2px;
         stroke-dasharray: "6,6";
+        fill: none;
       }
       #line-chart .dot {
         fill: #82aaff;
-        stroke: #0f0f23; /* Match page background */
+        stroke: #0f0f23;
         stroke-width: 1.5px;
       }
       #line-chart .no-data-text {
         fill: #a0a0b0;
         font-size: 16px;
         text-anchor: middle;
+      }
+
+      /* Scatter Plot Specific Styles for Dark Theme */
+      #scatter-container {
+        width: 100%;
+        height: 500px;
+        position: relative;
+        background-color: transparent;
+      }
+      #scatter-plot {
+        display: block;
+        margin: auto;
+        background-color: transparent;
+      }
+      #scatter-plot .bg-rect {
+        fill: transparent;
+      }
+      #scatter-plot .x-axis path,
+      #scatter-plot .x-axis line,
+      #scatter-plot .y-axis path,
+      #scatter-plot .y-axis line {
+        stroke: #718096;
+      }
+      #scatter-plot .x-axis text,
+      #scatter-plot .y-axis text {
+        fill: #a0a0b0;
+        font-size: 10px;
+      }
+      #scatter-plot .x-label,
+      #scatter-plot .y-axis-label {
+        fill: #e0e0e0;
+        font-size: 12px;
+      }
+      #scatter-plot circle.scatter-dot {
+        /* More specific selector for scatter dots */
+        stroke: rgba(255, 255, 255, 0.7);
+        stroke-width: 1px;
+        /* Fill will be set by JS based on data/rating */
       }
 
       @media (max-width: 768px) {
@@ -516,14 +593,18 @@
         #line-chart-container {
           height: 350px;
         }
+        #scatter-container {
+          height: 400px;
+        }
         .stat-value {
           font-size: 1.5rem;
         }
         .stat-label {
           font-size: 0.8rem;
         }
-        .chart-header h3 {
-          font-size: 1.1rem;
+        .chart-header h3,
+        .section-title {
+          font-size: 1.2rem;
         }
       }
     </style>
@@ -539,9 +620,9 @@
     <div class="dashboard-container">
       <h1 class="dashboard-title">Global Cinema Data Explorer</h1>
 
-      <!-- Map Visualization Section -->
+      <!-- Main Visualization Section -->
       <section class="viz-section">
-        <h2 class="viz-title">Global Cinema Production by Country</h2>
+        <h2 class="viz-title">Global Cinema Production & Trends</h2>
 
         <div class="summary-stats">
           <div class="stat-card">
@@ -666,7 +747,6 @@
 
             <div class="control-group">
               <label>Chart & Data Options:</label>
-              <!-- Combined label -->
               <button
                 id="inflation-btn"
                 class="button inflation-button full-width-button"
@@ -700,12 +780,12 @@
         </div>
 
         <div class="viz-container" style="margin-bottom: 2rem">
-          <h2
+          <h3
             class="viz-title"
             style="text-align: center; border-bottom: none; margin-bottom: 1rem"
           >
             Country Production Map
-          </h2>
+          </h3>
           <div id="map-container">
             <div class="loading">
               <div class="spinner"></div>
@@ -713,28 +793,59 @@
           </div>
         </div>
 
-        <!-- Line Chart Section -->
-        <div class="viz-container">
+        <!-- Line Chart Section (Using original dashboard IDs) -->
+        <div class="viz-container" style="margin-bottom: 2rem">
           <div class="chart-header">
             <h3>
               <span id="chart-title">Average Revenue per Movie</span>:
               <span id="selected-country">United States of America</span>
             </h3>
-            <p>
+            <p class="chart-description">
               Click on any country in the map above to view its trends. Use
               controls to adjust data display.
             </p>
           </div>
           <div id="line-chart-container">
             <svg id="line-chart"></svg>
+            <!-- Optional: <div class="loading">Spinner for line chart</div> -->
+          </div>
+        </div>
+
+        <!-- Scatter Plot Section (New) -->
+        <div class="viz-container">
+          <h2 class="section-title">
+            🎯 Do Bigger Budgets Mean Bigger Profits?
+            <span id="budget-year-label" style="color: #82aaff"></span>
+          </h2>
+
+          <div class="button-group">
+            <label for="toggle-profit-ratio">
+              <input type="checkbox" id="toggle-profit-ratio" />
+              Show Revenue-to-Budget Ratio
+            </label>
+            <button id="scatter-reset-btn" class="button reset-zoom-button">
+              Reset Scatter Zoom
+            </button>
+          </div>
+
+          <p class="chart-description">
+            This scatter plot compares movie budgets and worldwide revenue for
+            the selected year. Hover over dots for details.
+          </p>
+
+          <div id="scatter-container">
+            <svg id="scatter-plot"></svg>
           </div>
         </div>
       </section>
     </div>
 
+    <div id="movie-tooltip" class="tooltip" style="opacity: 0"></div>
     <div class="tooltip"></div>
+    <!-- Existing map tooltip. -->
 
     <script src="https://d3js.org/d3.v5.min.js"></script>
-    <script src="js/main.js"></script>
+    <!-- IMPORTANT: main.js must be loaded as a module for import statements to work -->
+    <script type="module" src="js/main.js"></script>
   </body>
 </html>
