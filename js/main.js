@@ -7,14 +7,14 @@ let movieCountsByYear = {};
 let selectedCountry = "United States of America"; 
 
 // Filter state
-let selectedYear = 2025;
+let selectedYear = 2024;
 let minRating = 7;
 let minVotes = 10000;
 let mapMetric = "count"; 
 let adjustForInflation = false;
 let chartMode = "average"; 
 let minChartYear = 1925;
-let maxChartYear = 2025;
+let maxChartYear = 2024;
 
 // D3 selections for map
 let svgMap, gMap, projectionMap, pathMap, zoomMap, legendGroupMap;
@@ -1092,12 +1092,12 @@ function setupDashboardControlsEventListeners() {
     });
 
     if (resetBtnEl) resetBtnEl.addEventListener('click', function() {
-        selectedYear = 2025; minRating = 7; minVotes = 10000; mapMetric = "count";
+        selectedYear = 2024; minRating = 7; minVotes = 10000; mapMetric = "count";
         selectedCountry = "United States of America"; 
         adjustForInflation = false; 
         chartMode = "average"; 
         minChartYear = 1925; 
-        maxChartYear = 2025;
+        maxChartYear = 2024;
         showProfitRatio = false; 
 
         if (yearSliderEl) yearSliderEl.value = selectedYear; if (yearValueEl) yearValueEl.textContent = selectedYear;
@@ -1263,4 +1263,3 @@ window.addEventListener('resize', debounce(() => {
         updateHighBudgetScatter(); 
     }
 }, 250));
-
