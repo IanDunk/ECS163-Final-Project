@@ -8,547 +8,80 @@
       content="Interactive Movie Data Visualization Dashboard"
     />
     <title>Movie Data Explorer | Interactive Visualizations</title>
+    <!-- GSAP Core -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <!-- ScrollTrigger Plugin -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
 
     <!-- Google Fonts -->
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="landing.css">
+    <link rel="stylesheet" href="styles.css">
 
-    <style>
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
 
-      html {
-        scroll-behavior: smooth;
-      }
-
-      body {
-        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
-          Roboto, Oxygen, Ubuntu, sans-serif;
-        background-color: #f8f9fa;
-        color: #212529;
-        line-height: 1.6;
-      }
-
-      /* Header Styles */
-      .header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 1.5rem 0;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      }
-
-      .header-content {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 0 2rem;
-      }
-
-      .header h1 {
-        font-size: 2rem;
-        font-weight: 700;
-        margin-bottom: 0.5rem;
-      }
-
-      .header p {
-        font-size: 1.1rem;
-        opacity: 0.9;
-      }
-
-      /* Main Container */
-      .container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 2rem;
-      }
-
-      /* Visualization Section Styles */
-      .viz-section {
-        background: white;
-        border-radius: 12px;
-        padding: 2rem;
-        margin-bottom: 1.5rem;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-      }
-
-      .section-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #495057;
-        margin-bottom: 1.5rem;
-        padding-bottom: 0.75rem;
-        border-bottom: 2px solid #667eea;
-      }
-
-      /* Controls Grid */
-      .controls-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 2rem;
-        padding: 1.5rem;
-        background: #f8f9fa;
-        border-radius: 8px;
-        border: 1px solid #e9ecef;
-      }
-
-      .control-group {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-      }
-
-      .control-group label {
-        font-weight: 600;
-        color: #495057;
-        font-size: 0.95rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
-
-      .control-value {
-        font-weight: 500;
-        color: #667eea;
-        background-color: #f0f4ff;
-        padding: 0.2rem 0.5rem;
-        border-radius: 4px;
-        font-size: 0.9rem;
-      }
-
-      /* Range Input Styles */
-      input[type="range"] {
-        width: 100%;
-        height: 6px;
-        background: #e9ecef;
-        border-radius: 3px;
-        outline: none;
-        cursor: pointer;
-        -webkit-appearance: none;
-      }
-
-      input[type="range"]::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 18px;
-        height: 18px;
-        background: #667eea;
-        border-radius: 50%;
-        cursor: pointer;
-        transition: all 0.2s ease;
-      }
-
-      input[type="range"]::-webkit-slider-thumb:hover {
-        background: #5563d1;
-        transform: scale(1.1);
-        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-      }
-
-      input[type="range"]::-moz-range-thumb {
-        width: 18px;
-        height: 18px;
-        background: #667eea;
-        border-radius: 50%;
-        cursor: pointer;
-        border: none;
-        transition: all 0.2s ease;
-      }
-
-      input[type="range"]::-moz-range-thumb:hover {
-        background: #5563d1;
-        transform: scale(1.1);
-        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-      }
-
-      /* Radio Button Styles */
-      .radio-group {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-      }
-
-      .radio-item {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
-
-      .radio-item input[type="radio"] {
-        width: 18px;
-        height: 18px;
-        cursor: pointer;
-        accent-color: #667eea;
-      }
-
-      .radio-item label {
-        font-size: 0.9rem;
-        color: #495057;
-        cursor: pointer;
-        user-select: none;
-        font-weight: 400;
-      }
-
-      /* Button Styles */
-      .button {
-        padding: 0.75rem 1.5rem;
-        border-radius: 10px;
-        border: none;
-        font-size: 0.95rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        text-transform: none;
-        letter-spacing: 0.025em;
-        outline: none;
-        position: relative;
-        overflow: hidden;
-        min-width: 160px;
-        text-align: center;
-        line-height: 1.3;
-        font-family: inherit;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-      }
-
-      .button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-      }
-
-      .button:active {
-        transform: translateY(-1px);
-        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
-        transition: all 0.1s ease;
-      }
-
-      .button:focus {
-        outline: 2px solid rgba(102, 126, 234, 0.5);
-        outline-offset: 2px;
-      }
-
-      /* Reset Filters Button */
-      .reset-button {
-        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-        color: white;
-      }
-
-      .reset-button:hover {
-        background: linear-gradient(135deg, #c82333 0%, #a71e2a 100%);
-        box-shadow: 0 6px 16px rgba(220, 53, 69, 0.3);
-      }
-
-      .reset-button:active {
-        box-shadow: 0 3px 10px rgba(220, 53, 69, 0.4);
-      }
-
-      /* Reset Zoom Button */
-      .reset-zoom-button {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-      }
-
-      .reset-zoom-button:hover {
-        background: linear-gradient(135deg, #5563d1 0%, #6a42a0 100%);
-        box-shadow: 0 6px 16px rgba(102, 126, 234, 0.3);
-      }
-
-      .reset-zoom-button:active {
-        box-shadow: 0 3px 10px rgba(102, 126, 234, 0.4);
-      }
-
-      /* Chart Mode Button */
-      .chart-mode-button {
-        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-        color: white;
-      }
-
-      .chart-mode-button:hover {
-        background: linear-gradient(135deg, #138496 0%, #0e6b7d 100%);
-        box-shadow: 0 6px 16px rgba(23, 162, 184, 0.3);
-      }
-
-      .chart-mode-button:active {
-        box-shadow: 0 3px 10px rgba(23, 162, 184, 0.4);
-      }
-
-      /* Inflation Button */
-      .inflation-button {
-        background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
-        color: white;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-
-      .inflation-button:hover {
-        background: linear-gradient(135deg, #5a6268 0%, #495057 100%);
-        box-shadow: 0 6px 16px rgba(108, 117, 125, 0.3);
-      }
-
-      .inflation-button:active {
-        box-shadow: 0 3px 10px rgba(108, 117, 125, 0.4);
-      }
-
-      /* Full Width Button Style */
-      .full-width-button {
-        width: 100%;
-        min-width: auto;
-        margin-top: 0.5rem;
-      }
-
-      /* Button Group */
-      .button-group {
-        display: flex;
-        gap: 1rem;
-        align-items: center;
-        justify-content: flex-end;
-        flex-wrap: wrap;
-        margin-top: 1rem;
-      }
-
-      /* Map Container */
-      #map-container {
-        width: 100%;
-        height: 650px;
-        position: relative;
-      }
-
-      /* Legend Styles */
-      .legend-container {
-        position: absolute;
-        bottom: 20px;
-        left: 20px;
-        background: white;
-        padding: 1rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        font-size: 0.875rem;
-      }
-
-      .legend-title {
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-        color: #495057;
-      }
-
-      /* Tooltip Styles */
-      .tooltip {
-        position: absolute;
-        padding: 12px;
-        font-size: 0.875rem;
-        background: white;
-        color: #212529;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        pointer-events: none;
-        opacity: 0;
-        transition: opacity 0.2s ease;
-        max-width: 250px;
-        z-index: 1000;
-      }
-
-      .tooltip strong {
-        color: #212529;
-        font-weight: 600;
-      }
-
-      .tooltip .tooltip-row {
-        margin: 0.25rem 0;
-      }
-
-      /* Loading Spinner */
-      .loading {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 400px;
-        color: #6c757d;
-      }
-
-      .spinner {
-        border: 3px solid #f3f3f3;
-        border-top: 3px solid #667eea;
-        border-radius: 50%;
-        width: 40px;
-        height: 40px;
-        animation: spin 1s linear infinite;
-      }
-
-      @keyframes spin {
-        0% {
-          transform: rotate(0deg);
-        }
-        100% {
-          transform: rotate(360deg);
-        }
-      }
-
-      /* Summary Stats */
-      .summary-stats {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-        margin-bottom: 2rem;
-      }
-
-      .stat-card {
-        background: #f8f9fa;
-        padding: 1rem;
-        border-radius: 8px;
-        text-align: center;
-        border: 1px solid #e9ecef;
-      }
-
-      .stat-value {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #667eea;
-      }
-
-      .stat-label {
-        font-size: 0.875rem;
-        color: #6c757d;
-        margin-top: 0.25rem;
-      }
-
-      /* Line Chart Styles */
-      .chart-header {
-        margin-bottom: 1.5rem;
-      }
-
-      .chart-info {
-        margin: 0 0 0.5rem 0;
-        color: #495057;
-        font-size: 1.25rem;
-        font-weight: 700;
-      }
-
-      .chart-description {
-        margin: 0;
-        color: #6c757d;
-        font-size: 0.875rem;
-      }
-
-      #line-chart {
-        width: 100%;
-        height: 100%;
-      }
-
-      .line-path {
-        fill: none;
-        stroke-width: 2;
-      }
-
-      .dot {
-        cursor: pointer;
-        transition: all 0.2s ease;
-      }
-
-      .dot:hover {
-        r: 6;
-      }
-
-      .axis {
-        font-size: 12px;
-      }
-
-      .axis-label {
-        font-size: 14px;
-        font-weight: 500;
-        fill: #495057;
-      }
-
-      .grid line {
-        stroke: #e9ecef;
-        stroke-opacity: 0.7;
-        shape-rendering: crispEdges;
-      }
-
-      .grid path {
-        stroke-width: 0;
-      }
-
-      .no-data-message {
-        text-align: center;
-        padding: 3rem;
-        color: #6c757d;
-        font-size: 1rem;
-      }
-
-      /* Responsive Design */
-      @media (max-width: 768px) {
-        .header h1 {
-          font-size: 1.5rem;
-        }
-
-        .header p {
-          font-size: 1rem;
-        }
-
-        .controls-grid {
-          grid-template-columns: 1fr;
-          gap: 1rem;
-        }
-
-        .button-group {
-          flex-direction: column;
-          width: 100%;
-          gap: 0.75rem;
-        }
-
-        .button {
-          width: 100%;
-          min-width: auto;
-        }
-
-        .full-width-button {
-          width: 100%;
-          min-width: auto;
-        }
-
-        .container {
-          padding: 1rem;
-        }
-
-        .viz-section {
-          padding: 1rem;
-        }
-
-        #map-container {
-          height: 500px;
-        }
-
-        #line-chart-container {
-          height: 300px;
-        }
-
-        .chart-info {
-          font-size: 1.1rem;
-        }
-
-        .legend-container {
-          bottom: 10px;
-          left: 10px;
-          padding: 0.75rem;
-          font-size: 0.75rem;
-        }
-      }
-
-      /* Footer */
-      .footer {
-        text-align: center;
-        padding: 2rem;
-        color: #6c757d;
-        font-size: 0.875rem;
-      }
-    </style>
   </head>
 
   <body>
+  
+
+    <!-- Scroll Sections -->
+    <div class="slideshow-wrapper">
+
+      <div class="slideshow">
+        <section class="slide" id="slide-1">
+          <h1>Is the Film Industry Thriving or Surviving?</h1>
+          <p>An exploration of how artistry, economics, and geography shape the movies we watch.</p>
+        </section>
+
+        <section class="slide" id="slide-2">
+          <h2>A Wild Few Years in Hollywood</h2>
+          <ul>
+            <li>2020: Pandemic shutters theaters</li>
+            <li>2020: <em>Parasite</em> disrupts the Oscars</li>
+            <li>2023: Dual strikes halt production</li>
+          </ul>
+        </section>
+
+        <section class="slide" id="slide-3">
+          <h2>The Questions We’re Asking</h2>
+          <p>🎭 Is Hollywood chasing profit over art?<br>💰 Is international production the new standard?</p>
+        </section>
+
+        <section class="slide" id="slide-4">
+          <h2>Where the Data Comes From</h2>
+          <p>IMDb + Oscar datasets, spanning 1920 to 2025.</p>
+        </section>
+
+        <section class="slide" id="slide-5">
+          <h2>What You’ll Explore</h2>
+          <p>Heatmaps, filters, and trends across time, ratings, and geography.</p>
+        </section>
+
+        <section class="slide" id="slide-6">
+          <h2>Begin Your Journey</h2>
+          <p>Scroll down to explore our full interactive dashboard.</p>
+        </section>
+      </div>
+
+      <div class="slide-indicators">
+        <span class="dot active"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+      </div>
+      
+    
+
+    
+
+
+    </div>
     <!-- Header Section -->
     <header class="header">
       <div class="header-content">
@@ -775,7 +308,8 @@
     <div class="tooltip"></div>
 
     <!-- Scripts -->
-    <script src="https://d3js.org/d3.v5.min.js"></script>
-    <script src="main.js"></script>
+    <script src="https://d3js.org/d3.v5.min.js" defer></script>
+    <script src="landing.js" defer></script>
+    <script src="main.js" defer></script>
   </body>
 </html>
