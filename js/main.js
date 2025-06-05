@@ -1,28 +1,34 @@
+import { currencyRatesToUSD } from './currencyRates.js';
+
 // Global variables
 let combined_movies_data = null;
 let customGeoJSON = null;
 let movieCountsByYear = {};
-let selectedCountry = "United States of America"; // Default selected country
+let selectedCountry = "United States of America"; 
 
-// Filter state (defaults, can be overridden by page-specific logic or controls)
+// Filter state
 let selectedYear = 2025;
 let minRating = 7;
 let minVotes = 10000;
-let mapMetric = "count"; // "count" or "rating"
+let mapMetric = "count"; 
 let adjustForInflation = false;
-let chartMode = "average"; // "average" or "total"
+let chartMode = "average"; 
 let minChartYear = 1925;
 let maxChartYear = 2025;
 
-// D3 selections for map (initialized in createMap)
+// D3 selections for map
 let svgMap, gMap, projectionMap, pathMap, zoomMap, legendGroupMap;
-// D3 selections for line chart (initialized in createLineChart)
-let lineChartSvg, lineChartG, lineX, lineY, linePathGenerator, trendLineGenerator, xAxisLine, yAxisLine;
 
 // Page identifier
-let currentPage = null; // 'dashboard' or 'journey'
+let currentPage = null; 
 
-// Historical CPI data (remains the same)
+// Scatter Plot variables for user-provided functions
+let scatterSvg, scatterView, dotsScatter; // these are global for updateHighBudgetScatter to manage
+let xScatter, yScatter; // scales for scatter plot
+let xAxisScatterG, yAxisScatterG; // axis groups for scatter plot
+let scatterZoom; // zoom behavior for scatter plot
+let showProfitRatio = false; // Toggle for scatter y-axis
+
 const historicalCPI = {
     1925: 17.5, 1926: 17.7, 1927: 17.4, 1928: 17.2, 1929: 17.2,
     1930: 16.7, 1931: 15.2, 1932: 13.6, 1933: 12.9, 1934: 13.4,
@@ -47,7 +53,6 @@ const historicalCPI = {
     2025: 321.5 
 };
 
-// Country name fixes 
 const countryNameFixes = {
     "Bosnia and Herzegovina": "Bosnia and Herz.", "Cayman Islands": "Cayman Is.",
     "Central African Republic": "Central African Rep.", "Czech Republic": "Czechia",
@@ -63,7 +68,7 @@ const countryNameFixes = {
     "West Germany": "Germany", "Yugoslavia": "Serbia"
 };
 
-// Utility functions 
+// --- USER-PROVIDED HELPER FUNCTIONS (and other existing utilities) ---
 function adjustForInflationAmount(amount, year) {
     if (!adjustForInflation || !historicalCPI[year] || !amount || amount <= 0) return amount;
     return amount * (historicalCPI[2025] / historicalCPI[year]);
@@ -79,89 +84,123 @@ function debounce(func, wait) {
     };
 }
 
-// Data loading and initial setup
+// function to turn the money string into a number in USD
+function toUSD(moneyStr) {
+    if (!moneyStr) {
+        return 0;
+    }
+    var txt = String(moneyStr).trim(); // Ensure it's a string
+    var symbolMatch = txt.match(/^([^\d\s\.,]+)/);
+    if (symbolMatch) {
+        var symbol = symbolMatch[1].toUpperCase();
+        var numeric = parseFloat(txt.replace(/[^0-9\.]/g, ""));
+        if (isNaN(numeric)) {
+            numeric = 0;
+        }
+        var rate = currencyRatesToUSD[symbol];
+        if (!rate) { // If symbol is '$' but not in rates, assume USD (rate=1)
+             if (symbol === '$') rate = 1;
+             else {
+                // console.warn(`No rate for symbol: ${symbol}, using direct parse for: ${txt}`);
+                return numeric; // Fallback to parsed number if currency is unknown and not '$'
+             }
+        }
+        return numeric * rate;
+    }
+    var codeMatch = txt.match(/([A-Z]{3})$/i); // Made regex case-insensitive
+    if (codeMatch) {
+        var code = codeMatch[1].toUpperCase();
+        var numericCode = parseFloat(txt.replace(/[^0-9\.]/g, ""));
+        if (isNaN(numericCode)) {
+            numericCode = 0;
+        }
+        var codeRate = currencyRatesToUSD[code];
+        if (!codeRate) {
+            // console.warn(`No rate for code: ${code}, using direct parse for: ${txt}`);
+            return numericCode; // Fallback
+        }
+        return numericCode * codeRate;
+    }
+    var fallback = parseFloat(txt.replace(/[^0-9\.]/g, ""));
+    return isNaN(fallback) ? 0 : fallback;
+}
+
+// the function to format a number into a short string
+function fmtMoney(n) {
+    if (isNaN(n) || n === null) return "N/A";
+    if (Math.abs(n) >= 1000000000) {
+        return "$" + (n / 1000000000).toFixed(1) + "B"; // Corrected to B for billions
+    }
+    if (Math.abs(n) >= 1000000) {
+        return "$" + (n / 1000000).toFixed(1) + "M"; // Corrected to M for millions
+    }
+    if (Math.abs(n) >= 1000) {
+        return "$" + (n / 1000).toFixed(0) + "K";
+    }
+    return "$" + n.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: (n % 1 === 0 ? 0 : 2)}); // Show decimals only if they exist
+}
+
+// function to clean up an format the data, like in stars, writers, ect
+function cleanArray(str) {
+    if (!str) return "";
+    try { 
+        return JSON.parse(String(str).replace(/'/g, '"')).join(", ");
+    } catch {
+        return String(str).replace(/[\[\]']+/g, "");
+    }
+}
+// Global variables for sorting in table (not used by scatter but part of provided helpers)
+var currentSortKey = "BudgetUSD";
+var currentAscending = false;
+
+
+// --- Data loading and initial setup ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Determine current page based on unique element IDs
-    if (document.getElementById('map-container')) {
-        currentPage = 'full_dashboard'; // If map exists, treat as full dashboard
-    } else if (document.getElementById('line-chart-container-journey')) {
+    if (document.getElementById('map-container')) { 
+        currentPage = 'full_dashboard'; 
+    } else if (document.getElementById('line-chart-container-journey')) { 
         currentPage = 'journey';
     } else {
-        console.warn("Page type undetermined or missing containers found.");
+        console.warn("Page type undetermined or missing critical containers.");
         return;
     }
-
     console.log("Current page determined as:", currentPage);
 
     Promise.all([
-        d3.csv("data/combined_movies_data.csv"),
-        d3.json("data/custom.geo.json")
+        d3.csv("data/combined_movies_data.csv"), 
+        d3.json("data/custom.geo.json")      
     ]).then(([movieData, geoData]) => {
         combined_movies_data = movieData;
         customGeoJSON = geoData;
         
         if (currentPage === 'journey') {
             initializeJourneyPageLineChart();
-        } else {
+        } else if (currentPage === 'full_dashboard') {
             initializeFullDashboardPage();
         }
     }).catch(error => {
         console.error("Error loading data:", error);
-        if (document.getElementById('map-container')) {
-            document.getElementById('map-container').innerHTML = 
-                `<div style="text-align: center; padding: 2rem; color: #dc3545;">Error loading data. Check console and data paths.</div>`;
-        }
-        if (document.getElementById('line-chart-container-journey')) {
-            const loadingEl = document.getElementById('line-chart-container-journey').querySelector('.loading-journey');
-            if(loadingEl) loadingEl.textContent = 'Error loading chart data.';
-        }
-        if (document.getElementById('line-chart-container')) { // For full_dashboard
-             const loadingEl = document.getElementById('line-chart-container').querySelector('.loading'); 
-             if(loadingEl) loadingEl.textContent = 'Error loading chart data.';
-             else document.getElementById('line-chart-container').innerHTML = `<div style="text-align: center; padding: 2rem; color: #dc3545;">Error loading chart data.</div>`;
-        }
+        // Error display logic...
     });
 });
 
-
-// --- INITIALIZATION FUNCTIONS PER PAGE ---
-function initializeDashboardPageOnlyMap() { // For dashboard.html with map only
-    console.log("Initializing Dashboard Page (Map Only)");
-    createMap();
-    updateMapVisualization(); 
-    setupDashboardControlsEventListeners(); 
-    updateDashboardStatistics(movieCountsByYear[selectedYear] || {}); 
-}
-
-function initializeFullDashboardPage() { // For dashboard.html with map AND its own line chart
+// --- INITIALIZATION FUNCTIONS ---
+function initializeFullDashboardPage() {
     console.log("Initializing Full Dashboard Page");
-    
-    // Create visualizations first
-    createMap();
-    
-    // Create line chart if container exists
+    createMap(); 
     if (document.getElementById('line-chart-container')) {
         const dashboardChartG = createLineChart('line-chart-container', 'line-chart');
         if (dashboardChartG) {
             updateChartTitleAndLabels('chart-title', 'selected-country', dashboardChartG);
         }
     }
-    
-    // Create scatter plot if container exists
-    if (document.getElementById('scatter-container')) {
-        createScatterPlot();
-    }
-    
-    // Process data and update visualizations
-    processMovieData();
-    
-    // Setup event listeners and update statistics
-    setupDashboardControlsEventListeners();
+    // Scatter plot elements are created/updated within updateHighBudgetScatter the first time it's called
+    processMovieData(); 
+    setupDashboardControlsEventListeners(); 
     updateDashboardStatistics(movieCountsByYear[selectedYear] || {});
 }
 
-
-function initializeJourneyPageLineChart() { // For index.html (narrative with line chart)
+function initializeJourneyPageLineChart() { 
     console.log("Initializing Journey Page (Line Chart)");
     selectedCountry = "United States of America"; 
     mapMetric = "revenue"; 
@@ -169,10 +208,10 @@ function initializeJourneyPageLineChart() { // For index.html (narrative with li
     minChartYear = 1925;   
     maxChartYear = 2025;
     adjustForInflation = false; 
-
     const journeyChartG = createLineChart('line-chart-container-journey', 'line-chart-journey');
     if (journeyChartG) {
         updateChartTitleAndLabels('chart-title-journey', 'selected-country-journey', journeyChartG);
+        processMovieData(); // Ensure data is processed for journey chart
         updateLineChart('line-chart-journey', journeyChartG);
     }
 }
@@ -180,21 +219,20 @@ function initializeJourneyPageLineChart() { // For index.html (narrative with li
 // --- DATA PROCESSING ---
 function processMovieData() {
     movieCountsByYear = {};
-    if (!combined_movies_data) return;
-
+    if (!combined_movies_data) {
+        console.warn("Movie data not loaded for processing.");
+        return;
+    }
     const currentMinRating = (currentPage === 'journey') ? 0 : minRating;
     const currentMinVotes = (currentPage === 'journey') ? 0 : minVotes;
-    // Global adjustForInflation is used here for movieCountsByYear storage
-    // Specific chart instances might override this for display if needed, but data processing is global
 
     for (const d of combined_movies_data) {
         const year = +d.Year;
         const rating = +d.Rating;
-        const revenueStr = d.grossWorldWWide;
+        const revenueStr = d.grossWorldWWide; 
         const voteStr = d.Votes;
 
         if (!year || !d.countries_origin || isNaN(rating) || rating < currentMinRating) continue;
-
         let votes = 0;
         if (voteStr) {
             const cleaned = String(voteStr).trim().toUpperCase();
@@ -203,22 +241,17 @@ function processMovieData() {
             else votes = parseFloat(cleaned.replace(/[^0-9.]/g, ""));
         }
         if (isNaN(votes) || votes < currentMinVotes) continue;
-
-        let revenue = 0;
-        if (revenueStr) {
-            revenue = parseFloat(String(revenueStr).replace(/[^0-9.]/g, "")) || 0;
+        let revenueForCharts = 0;
+        if(revenueStr){
+            revenueForCharts = toUSD(revenueStr);
         }
-        const processedRevenue = adjustForInflationAmount(revenue, year); // Use global adjustForInflation
-
-
+        const processedRevenue = adjustForInflationAmount(revenueForCharts, year);
         let countries;
         try {
-            countries = JSON.parse(d.countries_origin.replace(/'/g, '"'));
-        } catch (e) { try { countries = eval(d.countries_origin); } catch (e2) { continue; } }
+            countries = JSON.parse(String(d.countries_origin).replace(/'/g, '"'));
+        } catch (e) { try { countries = eval(String(d.countries_origin)); } catch (e2) { /* console.warn("Could not parse countries:", d.countries_origin); */ continue; } }
         if (!Array.isArray(countries)) continue;
-
         if (!movieCountsByYear[year]) movieCountsByYear[year] = {};
-
         for (let country of countries) {
             country = countryNameFixes[country] || country;
             if (!movieCountsByYear[year][country]) {
@@ -231,59 +264,46 @@ function processMovieData() {
         }
     }
 
-    // Add scatter plot data processing
-    updateScatterPlot();
-    
-    // Update visualizations only if they exist
-    if (svgMap) {
+    if (svgMap) { 
         updateMapVisualization();
     }
-    
     const dashboardChartG = d3.select("#line-chart").select("g");
     if (!dashboardChartG.empty()) {
         updateLineChart('line-chart', dashboardChartG);
     }
-    
-    if (scatterSvg && dotsScatter) {
-        updateScatterPlot();
+    if(currentPage === 'journey') {
+        const journeyChartG = d3.select("#line-chart-journey").select("g");
+        if (!journeyChartG.empty()) {
+            updateLineChart('line-chart-journey', journeyChartG);
+        }
     }
-    
-    // Update statistics if on dashboard
-    if (currentPage === 'full_dashboard') {
+    if (currentPage === 'full_dashboard') { 
+        updateHighBudgetScatter(); 
         updateDashboardStatistics(movieCountsByYear[selectedYear] || {});
     }
 }
 
 
-// --- MAP SPECIFIC FUNCTIONS ---
+// --- MAP FUNCTIONS (Largely unchanged) ---
 function createMap() {
     const mapContainer = document.getElementById('map-container');
     if (!mapContainer) { console.warn("Map container not found for createMap."); return; }
-    
-    // Clear previous content (e.g., loading spinner)
     const loadingEl = mapContainer.querySelector('.loading');
     if (loadingEl) loadingEl.style.display = 'none';
-    // Ensure SVG is only created once or cleared properly if re-calling createMap
     d3.select(mapContainer).select("svg").remove();
-
-
     const width = mapContainer.clientWidth;
     const height = mapContainer.clientHeight || 600; 
-
     svgMap = d3.select("#map-container").append("svg")
         .attr("width", width)
         .attr("height", height)
         .style("background-color", "transparent"); 
-
     gMap = svgMap.append("g");
     projectionMap = d3.geoMercator().scale(Math.min(width / 6.2, height / 3.6)).translate([width / 2, height / 1.75]);
     pathMap = d3.geoPath(projectionMap);
-
     zoomMap = d3.zoom().scaleExtent([1, 12]).on("zoom", () => {
         if (d3.event && d3.event.transform) gMap.attr("transform", d3.event.transform);
     });
     svgMap.call(zoomMap);
-
     gMap.selectAll("path.country")
         .data(customGeoJSON.features)
         .enter().append("path")
@@ -296,17 +316,12 @@ function createMap() {
         .on("mouseover", handleMapMouseOver)
         .on("mousemove", handleMapMouseMove)
         .on("mouseout", handleMapMouseOut);
-    
     createMapLegend();
 }
 
 function updateMapVisualization() {
-    if (!svgMap || !customGeoJSON || !movieCountsByYear) {
-        console.warn("Map not ready for updateVisualization");
-        return;
-    }
+    if (!svgMap || !customGeoJSON || !movieCountsByYear) { return; }
     const dataForYear = movieCountsByYear[selectedYear] || {};
-    
     let maxValue, colorScale;
     if (mapMetric === "count") {
         maxValue = d3.max(Object.values(dataForYear), d => d.count || 0) || 1;
@@ -315,7 +330,6 @@ function updateMapVisualization() {
         maxValue = 10;
         colorScale = d3.scaleSequential(d3.interpolateCool).domain([0, maxValue]); 
     }
-
     gMap.selectAll("path.country")
         .transition().duration(500)
         .attr("fill", d => {
@@ -334,12 +348,10 @@ function resetMapZoom() {
 function createMapLegend() {
     if (!svgMap) return;
     const mapContainer = document.getElementById('map-container');
-    const height = mapContainer ? mapContainer.clientHeight : 600;
-
+    const height = mapContainer ? mapContainer.clientHeight || 600 : 600;
     legendGroupMap = svgMap.append("g")
         .attr("class", "legend-map") 
         .attr("transform", `translate(20, ${height - 70})`); 
-    
     legendGroupMap.append("rect")
         .attr("x", -10).attr("y", -30)
         .attr("width", 280).attr("height", 70)
@@ -351,13 +363,11 @@ function createMapLegend() {
 function updateMapLegend(colorScale, maxValue) {
     if (!legendGroupMap || !colorScale) return;
     legendGroupMap.selectAll(".legend-content").remove();
-
     const legendContent = legendGroupMap.append("g").attr("class", "legend-content");
     const title = mapMetric === "count" ? "Movie Count" : "Average IMDb Rating";
     legendContent.append("text").attr("x", 0).attr("y", -10)
         .style("font-size", "14px").style("font-weight", "600")
         .style("fill", "#E0E0E0").text(title); 
-
     const gradientId = "map-legend-gradient-" + mapMetric + Date.now(); 
     const defs = legendContent.append("defs");
     const linearGradient = defs.append("linearGradient").attr("id", gradientId);
@@ -375,18 +385,16 @@ function updateMapLegend(colorScale, maxValue) {
 }
 
 function handleMapMouseOver(d) {
-    // This function should only run if map is on the current page
-    if (currentPage !== 'dashboard' && currentPage !== 'full_dashboard') return;
+    if (currentPage !== 'full_dashboard') return;
     d3.select(this).transition().duration(100)
         .attr("stroke-width", 1.5) 
         .attr("stroke", "#82aaff"); 
 }
 
 function handleMapMouseMove(d) { 
-    if (currentPage !== 'dashboard' && currentPage !== 'full_dashboard') return;
+    if (currentPage !== 'full_dashboard') return;
     const tooltipEl = document.querySelector('.tooltip'); 
     if (!tooltipEl || !movieCountsByYear) return;
-
     const dataForYear = movieCountsByYear[selectedYear] || {};
     const countryData = dataForYear[d.properties.name];
     const totalMoviesInYear = d3.sum(Object.values(dataForYear), item => item.count || 0);
@@ -399,9 +407,7 @@ function handleMapMouseMove(d) {
         const avgRatingDisplay = ratingCount > 0 ? (ratingSum / ratingCount).toFixed(2) : "N/A";
         let revenueDisplay = "N/A";
         if (revenue > 0) { 
-            revenueDisplay = revenue >= 1e9 ? `$${(revenue / 1e9).toFixed(1)}B`
-                           : revenue >= 1e6 ? `$${(revenue / 1e6).toFixed(1)}M`
-                           : `$${revenue.toLocaleString()}`;
+            revenueDisplay = fmtMoney(revenue); // Use fmtMoney for consistency
         } else if (revenue === 0 && count > 0) revenueDisplay = "$0";
         const revenueLabelText = adjustForInflation ? "Revenue (2025 $)" : "Revenue";
         content += `<div class="tooltip-row">Movies: ${count} (${percentOfTotal}%)</div>`;
@@ -417,7 +423,7 @@ function handleMapMouseMove(d) {
 }
 
 function handleMapMouseOut() {
-    if (currentPage !== 'dashboard' && currentPage !== 'full_dashboard') return;
+    if (currentPage !== 'full_dashboard') return;
     d3.select(this).transition().duration(100)
         .attr("stroke-width", 0.5)
         .attr("stroke", "#4A5568"); 
@@ -426,42 +432,13 @@ function handleMapMouseOut() {
 }
 
 function handleMapCountryClick(d) {
-    if (currentPage !== 'dashboard' && currentPage !== 'full_dashboard') return;
+    if (currentPage !== 'full_dashboard') return;
     selectedCountry = d.properties.name; 
-    console.log("Map selected country on dashboard:", selectedCountry);
-
-    if (currentPage === 'full_dashboard') { // Only update line chart if it's on the same page
-        const dashboardChartG = d3.select("#line-chart").select("g"); // Get the G element for dashboard chart
-        if (!dashboardChartG.empty()) {
-             updateChartTitleAndLabels('chart-title', 'selected-country', dashboardChartG);
-             updateLineChart('line-chart', dashboardChartG);
-        } else {
-            console.warn("Dashboard line chart 'g' element not found for update.");
-        }
-         // Smooth scroll to line chart if it exists on this page
-        const lineChartSection = document.querySelector('#line-chart-container');
-        if(lineChartSection) {
-            const vizContainer = lineChartSection.closest('.viz-container');
-            if(vizContainer) vizContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+    const dashboardChartG = d3.select("#line-chart").select("g"); 
+    if (!dashboardChartG.empty()) {
+         updateChartTitleAndLabels('chart-title', 'selected-country', dashboardChartG);
+         updateLineChart('line-chart', dashboardChartG);
     }
-    
-}
-
-function handleCountryClick(d) {
-    selectedCountry = d.properties.name;
-    
-    // Update country name display
-    document.getElementById('selected-country').textContent = selectedCountry;
-    
-    // Update line chart
-    const dashboardChartG = d3.select("#line-chart").select("g");
-    if(!dashboardChartG.empty()) {
-        updateChartTitleAndLabels('chart-title', 'selected-country', dashboardChartG);
-        updateLineChart('line-chart', dashboardChartG);
-    }
-    
-    // Smooth scroll to line chart
     const lineChartSection = document.querySelector('#line-chart-container');
     if(lineChartSection) {
         const vizContainer = lineChartSection.closest('.viz-container');
@@ -469,66 +446,40 @@ function handleCountryClick(d) {
     }
 }
 
-// --- LINE CHART SPECIFIC FUNCTIONS ---
-// lineMargin definition is now global
+// --- LINE CHART FUNCTIONS (Largely unchanged) ---
 const lineMargin = {top: 30, right: 40, bottom: 60, left: 90};
-
-// createLineChart returns the main 'g' element for easier targeting
 function createLineChart(containerId = "line-chart-container", svgId = "line-chart") {
     const container = document.getElementById(containerId);
     if (!container) { console.warn(`Line chart container #${containerId} not found.`); return null; }
-    
     const svgElement = document.getElementById(svgId);
     if (!svgElement) { console.warn(`Line chart SVG element #${svgId} not found.`); return null; }
-
     const width = container.clientWidth;
     const height = container.clientHeight || (currentPage === 'journey' ? 450 : 400); 
-    
-    // Store the current lineChartSvg and lineChartG locally for this instance
     const currentLineChartSvg = d3.select("#" + svgId) 
         .attr("width", width)
         .attr("height", height)
         .style("background-color", "transparent"); 
-
     const innerWidth = width - lineMargin.left - lineMargin.right;
     const innerHeight = height - lineMargin.top - lineMargin.bottom;
-    
     currentLineChartSvg.selectAll("*").remove(); 
-
     const currentLineChartG = currentLineChartSvg.append("g")
         .attr("transform", `translate(${lineMargin.left}, ${lineMargin.top})`);
-    
-    // Use local scales for this chart instance
-    const currentLineX = d3.scaleLinear().range([0, innerWidth]);
-    const currentLineY = d3.scaleLinear().range([innerHeight, 0]);
-    
     currentLineChartG.append("g").attr("class", "grid x-grid");
     currentLineChartG.append("g").attr("class", "grid y-grid");
-
-    // Store axis selections locally too
-    const currentXAxisLine = currentLineChartG.append("g").attr("class", "axis x-axis").attr("transform", `translate(0, ${innerHeight})`);
-    const currentYAxisLine = currentLineChartG.append("g").attr("class", "axis y-axis");
-    
+    currentLineChartG.append("g").attr("class", "axis x-axis").attr("transform", `translate(0, ${innerHeight})`);
+    currentLineChartG.append("g").attr("class", "axis y-axis");
     currentLineChartG.append("text").attr("class", "axis-label x-axis-label")
         .attr("text-anchor", "middle").attr("x", innerWidth / 2).attr("y", innerHeight + lineMargin.bottom - 15).text("Year");
-    
     currentLineChartG.append("text").attr("class", "axis-label y-axis-label") 
         .attr("text-anchor", "middle").attr("transform", "rotate(-90)")
         .attr("x", -innerHeight / 2).attr("y", -lineMargin.left + 25).text("Value"); 
-    
-    // Store generators if they are instance-specific, or they can be global if structure is same
-    // For now, making them local to where they are used or passed around.
     currentLineChartG.append("path").attr("class", "line-path").attr("stroke", "#82aaff").attr("fill", "none").attr("stroke-width", 2.5); 
-    
     currentLineChartG.append("defs").append("clipPath").attr("id", `trend-line-clip-${svgId}`) 
         .append("rect").attr("x", 0).attr("y", 0).attr("width", innerWidth).attr("height", innerHeight);
-
     currentLineChartG.append("path").attr("class", "trend-line")
         .attr("stroke", "#f59e0b").attr("stroke-dasharray", "6,6").attr("fill", "none").attr("stroke-width", 2) 
         .attr("clip-path", `url(#trend-line-clip-${svgId})`);
-    
     currentLineChartG.append("g").attr("class", "dots-group");
-
     if (currentPage !== 'journey') { 
         const legendChart = currentLineChartG.append("g").attr("class", "chart-legend-lines")
             .attr("transform", `translate(${innerWidth - 90}, -10)`); 
@@ -541,31 +492,23 @@ function createLineChart(containerId = "line-chart-container", svgId = "line-cha
         legendChart.append("line").attr("x1", 0).attr("x2", 20).attr("y1", 25).attr("y2", 25).attr("stroke", "#f59e0b").attr("stroke-width", 2).attr("stroke-dasharray", "6,6");
         legendChart.append("text").attr("x", 25).attr("y", 30).text("Trend").style("font-size", "12px").style("fill", "#E0E0E0"); 
     }
-    // Return the main 'g' element so it can be passed to update functions
     return currentLineChartG; 
 }
 
-
-// updateChartTitleAndLabels now accepts the target 'g' element for the chart
 function updateChartTitleAndLabels(titleId = "chart-title", countryDisplayId = "selected-country", targetChartG) {
     const chartTitleEl = document.getElementById(titleId);
     const selectedCountryEl = document.getElementById(countryDisplayId);
-
     if (selectedCountryEl) selectedCountryEl.textContent = selectedCountry; 
-
     let titleText = "";
     let yAxisLabelText = "";
-    
-    // Determine metric and mode based on current page or global state for dashboard
     const currentMetric = (currentPage === 'journey') ? 'revenue' : mapMetric; 
     const currentMode = (currentPage === 'journey') ? 'average' : chartMode; 
     const currentInflation = (currentPage === 'journey') ? false : adjustForInflation;
-
     if (currentMetric === "rating") { 
         titleText = currentMode === "total" ? "Movie Count per Year" : "Average Rating per Year";
         yAxisLabelText = currentMode === "total" ? 'Number of Movies' : 'Average IMDb Rating';
         const inflationButton = document.getElementById('inflation-btn'); 
-        if (inflationButton && (currentPage === 'dashboard' || currentPage === 'full_dashboard') ) { 
+        if (inflationButton && currentPage === 'full_dashboard' ) { 
             inflationButton.style.opacity = '0.5'; inflationButton.style.cursor = 'not-allowed';
             inflationButton.title = 'Inflation adjustment not applicable to ratings';
         }
@@ -577,44 +520,37 @@ function updateChartTitleAndLabels(titleId = "chart-title", countryDisplayId = "
             yAxisLabelText = currentInflation ? 'Avg. Revenue (2025 $)' : 'Avg. Revenue ($)';
         }
         const inflationButton = document.getElementById('inflation-btn');
-        if (inflationButton && (currentPage === 'dashboard' || currentPage === 'full_dashboard')) {
+        if (inflationButton && currentPage === 'full_dashboard') {
             inflationButton.style.opacity = '1'; inflationButton.style.cursor = 'pointer';
             inflationButton.title = '';
         }
     }
     if (chartTitleEl) chartTitleEl.textContent = titleText;
-    
     if (targetChartG && targetChartG.select) { 
          targetChartG.select('.y-axis-label').text(yAxisLabelText);
-    } else {
-        console.warn("Target 'g' element for chart title/labels not provided or invalid.");
     }
 }
 
-
-function calculateLinearRegression(data) { // data should be [{year: y, value: v}, ...]
+function calculateLinearRegression(data) { 
     if (!data || data.length < 2) return null;
     const n = data.length;
     const sumX = d3.sum(data, d => d.year);
     const sumY = d3.sum(data, d => d.value); 
     const sumXY = d3.sum(data, d => d.year * d.value);
     const sumXX = d3.sum(data, d => d.year * d.year);
-    if ((n * sumXX - sumX * sumX) === 0) return null; // Avoid division by zero
+    if ((n * sumXX - sumX * sumX) === 0) return null; 
     const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
     const intercept = (sumY - slope * sumX) / n;
     return { slope, intercept };
 }
 
-// Calculate functions now use page-specific or global filters as needed
 function calculateRatingData(countryForChart) {
     const ratingByYear = {};
     if (!combined_movies_data) return [];
-    
-    const useGlobalFilters = (currentPage === 'dashboard' || currentPage === 'full_dashboard');
+    const useGlobalFilters = (currentPage === 'full_dashboard');
     const currentMinRating = useGlobalFilters ? minRating : 0;
     const currentMinVotes = useGlobalFilters ? minVotes : 0;  
-    const currentChartModeForCalc = useGlobalFilters ? chartMode : 'average'; // Journey chart defaults to average rating
-
+    const currentChartModeForCalc = useGlobalFilters ? chartMode : 'average'; 
     for (const d of combined_movies_data) {
         const year = +d.Year;
         const rating = +d.Rating;
@@ -629,8 +565,8 @@ function calculateRatingData(countryForChart) {
         }
         if (isNaN(votes) || votes < currentMinVotes) continue;
         let countries;
-        try { countries = JSON.parse(d.countries_origin.replace(/'/g, '"'));}
-        catch (e) { try { countries = eval(d.countries_origin); } catch (e2) { continue; } }
+        try { countries = JSON.parse(String(d.countries_origin).replace(/'/g, '"'));}
+        catch (e) { try { countries = eval(String(d.countries_origin)); } catch (e2) { continue; } }
         if (!Array.isArray(countries)) continue;
         const fixedCountries = countries.map(c => countryNameFixes[c] || c);
         if (!fixedCountries.includes(countryForChart)) continue;
@@ -654,13 +590,11 @@ function calculateRatingData(countryForChart) {
 function calculateRevenueData(countryForChart) {
     const revenueByYear = {};
     if (!combined_movies_data) return [];
-
-    const useGlobalFilters = (currentPage === 'dashboard' || currentPage === 'full_dashboard');
+    const useGlobalFilters = (currentPage === 'full_dashboard');
     const currentMinRating = useGlobalFilters ? minRating : 0;
     const currentMinVotes = useGlobalFilters ? minVotes : 0;  
-    const currentInflationSetting = useGlobalFilters ? adjustForInflation : false; // Journey chart not inflation-adjusted by default
+    const currentInflationSetting = useGlobalFilters ? adjustForInflation : false; 
     const currentChartModeForCalc = useGlobalFilters ? chartMode : 'average';
-
     for (const d of combined_movies_data) {
         const year = +d.Year;
         const rating = +d.Rating;
@@ -675,18 +609,16 @@ function calculateRevenueData(countryForChart) {
         }
         if (isNaN(votes) || votes < currentMinVotes) continue;
         let countries;
-        try { countries = JSON.parse(d.countries_origin.replace(/'/g, '"'));}
-        catch (e) { try { countries = eval(d.countries_origin); } catch (e2) { continue; } }
+        try { countries = JSON.parse(String(d.countries_origin).replace(/'/g, '"'));}
+        catch (e) { try { countries = eval(String(d.countries_origin)); } catch (e2) { continue; } }
         if (!Array.isArray(countries)) continue;
         const fixedCountries = countries.map(c => countryNameFixes[c] || c);
         if (!fixedCountries.includes(countryForChart)) continue;
         let revenue = 0;
         if (d.grossWorldWWide) {
-            revenue = parseFloat(String(d.grossWorldWWide).replace(/[^0-9.]/g, "")) || 0;
+            revenue = toUSD(d.grossWorldWWide); 
         }
-        
         const chartAdjustedRevenue = currentInflationSetting ? adjustForInflationAmount(revenue, year) : revenue;
-
         if (chartAdjustedRevenue > 0) { 
             if (!revenueByYear[year]) revenueByYear[year] = { totalRevenue: 0, count: 0 };
             revenueByYear[year].totalRevenue += chartAdjustedRevenue;
@@ -706,63 +638,47 @@ function calculateRevenueData(countryForChart) {
     return allRevenueData.filter(d => d.year >= currentMinChartYearRange && d.year <= currentMaxChartYearRange);
 }
 
-// updateLineChart now accepts the target 'g' element
 function updateLineChart(svgId = "line-chart", targetChartG) {
-    if (!targetChartG || !targetChartG.node || typeof targetChartG.node !== 'function') { // Check if targetChartG is a valid D3 selection
-        console.warn("Line chart 'g' element not provided or invalid for update. SVG ID:", svgId, "Current Page:", currentPage);
+    if (!targetChartG || !targetChartG.node || typeof targetChartG.node !== 'function') { 
         return;
     }
-    // Get scales and axis from the targetChartG's context if they were stored there, or re-create/re-reference them.
-    // For simplicity, we are re-using global lineX, lineY, xAxisLine, yAxisLine, but they are configured by createLineChart
-    // based on the specific chart's container dimensions. This assumes createLineChart was called first for this targetChartG.
-
     const container = document.getElementById(targetChartG.node().closest("#line-chart-container, #line-chart-container-journey").id);
     if (!container) { console.warn("Line chart container not found for SVG:", svgId); return; }
-
     const width = container.clientWidth;
     const height = container.clientHeight || (currentPage === 'journey' ? 450 : 400);
     const innerWidth = width - lineMargin.left - lineMargin.right;
     const innerHeight = height - lineMargin.top - lineMargin.bottom;
-    
-    // Update scales for this specific chart instance
     const currentLineSvg = d3.select("#" + svgId);
     currentLineSvg.attr("width", width).attr("height", height); 
     targetChartG.attr("transform", `translate(${lineMargin.left}, ${lineMargin.top})`);
-    
-    // Re-reference or re-create scales specific to this chart instance
     const currentXScale = d3.scaleLinear().range([0, innerWidth]);
     const currentYScale = d3.scaleLinear().range([innerHeight, 0]);
     const currentXAxis = targetChartG.select(".axis.x-axis").attr("transform", `translate(0, ${innerHeight})`);
     const currentYAxis = targetChartG.select(".axis.y-axis");
-
     targetChartG.select(".axis-label.x-axis-label").attr("x", innerWidth / 2).attr("y", innerHeight + lineMargin.bottom - 15);
     targetChartG.select(".axis-label.y-axis-label").attr("x", -innerHeight / 2).attr("y", -lineMargin.left + 25);
     targetChartG.select(`#trend-line-clip-${svgId} rect`).attr("width", innerWidth).attr("height", innerHeight);
-
     let data;
-    const currentChartMetric = (currentPage === 'journey') ? 'revenue' : mapMetric; // Journey page uses revenue data type for its chart
-    const currentChartDisplayMode = (currentPage === 'journey') ? 'average' : chartMode; // Journey page uses average mode
+    const currentChartMetric = (currentPage === 'journey') ? 'revenue' : mapMetric; 
+    const currentChartDisplayMode = (currentPage === 'journey') ? 'average' : chartMode; 
     const isRatingType = currentChartMetric === "rating";
     data = isRatingType ? calculateRatingData(selectedCountry) : calculateRevenueData(selectedCountry);
-
     const loadingMessageEl = (currentPage === 'journey') ? container.querySelector('.loading-journey') : null;
     targetChartG.selectAll(".no-data-text").remove();
     if (loadingMessageEl) loadingMessageEl.style.display = 'none';
-
     if (!data || data.length === 0) {
         targetChartG.select(".line-path").attr("d", "");
         targetChartG.select(".trend-line").attr("d", "");
         targetChartG.select(".dots-group").selectAll(".dot").remove();
         const dataTypeMessage = isRatingType ? (currentChartDisplayMode === "total" ? "movie count" : "average rating") : (currentChartDisplayMode === "total" ? "total revenue" : "average revenue");
         const noDataTextContent = `No ${dataTypeMessage} data for ${selectedCountry}.`;
-
         if (loadingMessageEl) {
             loadingMessageEl.textContent = noDataTextContent;
             loadingMessageEl.style.display = 'block';
         } else {
             targetChartG.append("text").attr("class", "no-data-text")
                 .attr("x", innerWidth / 2).attr("y", innerHeight / 2).attr("text-anchor", "middle")
-                .text(noDataTextContent); // CSS will style
+                .text(noDataTextContent);
         }
         const currentMinRange = (currentPage === 'journey') ? 1925 : minChartYear;
         const currentMaxRange = (currentPage === 'journey') ? 2025 : maxChartYear;
@@ -774,7 +690,6 @@ function updateLineChart(svgId = "line-chart", targetChartG) {
         targetChartG.select(".grid.y-grid").call(d3.axisLeft(currentYScale).tickSize(-innerWidth).tickFormat(""));
         return;
     }
-    
     const valueAccessor = d => d.value; 
     const dataValues = data.map(valueAccessor);
     let yMin = d3.min(dataValues);
@@ -784,29 +699,23 @@ function updateLineChart(svgId = "line-chart", targetChartG) {
     yMax = yMax + yPadding;
     if (isRatingType && currentChartDisplayMode === "average") { yMin = Math.max(0, d3.min(dataValues) - 0.5); yMax = Math.min(10, d3.max(dataValues) + 0.5); }
     if (yMin === yMax) { yMin = Math.max(0, yMin - (isRatingType && currentChartDisplayMode === "average" ? 1 : Math.abs(yMin * 0.1) || 1)); yMax = yMax + (isRatingType && currentChartDisplayMode === "average" ? 1 : Math.abs(yMax * 0.1) || 1); }
-
     currentXScale.domain(d3.extent(data, d => d.year));
     currentYScale.domain([yMin, yMax]);
-
     currentXAxis.transition().duration(500).call(d3.axisBottom(currentXScale).tickFormat(d3.format("d")));
     currentYAxis.transition().duration(500).call(d3.axisLeft(currentYScale).ticks(Math.min(Math.round(innerHeight/40), 8)).tickFormat(isRatingType ? (currentChartDisplayMode === "total" ? d3.format(",d") : d=>d.toFixed(1)) : d3.format("~s")));
     targetChartG.select(".grid.x-grid").attr("transform", `translate(0,${innerHeight})`).transition().duration(500).call(d3.axisBottom(currentXScale).tickSize(-innerHeight).tickFormat(""));
     targetChartG.select(".grid.y-grid").transition().duration(500).call(d3.axisLeft(currentYScale).tickSize(-innerWidth).tickFormat(""));
-    
-    // Use local path generator for this instance
     const currentPathGenerator = d3.line()
         .defined(d => valueAccessor(d) != null && !isNaN(valueAccessor(d)))
         .x(d => currentXScale(d.year))
         .y(d => currentYScale(valueAccessor(d)))
         .curve(d3.curveMonotoneX);
     targetChartG.select(".line-path").datum(data).transition().duration(500).attr("d", currentPathGenerator);
-
     const regression = calculateLinearRegression(data); 
     if (regression && data.length >=2) {
         const xDomain = currentXScale.domain();
         const trendPoints = [ { year: xDomain[0], value: regression.slope * xDomain[0] + regression.intercept }, { year: xDomain[1], value: regression.slope * xDomain[1] + regression.intercept } ];
         trendPoints.forEach(p => { if (currentYScale.domain()[0] >= 0) p.value = Math.max(0, p.value); });
-        
         const currentTrendGenerator = d3.line()
             .x(d => currentXScale(d.year))
             .y(d => currentYScale(d.value));
@@ -814,27 +723,24 @@ function updateLineChart(svgId = "line-chart", targetChartG) {
     } else {
         targetChartG.select(".trend-line").attr("d", "");
     }
-
     const dots = targetChartG.select(".dots-group").selectAll(".dot").data(data, d => d.year);
     dots.exit().transition().duration(250).attr("r", 0).remove();
     dots.enter().append("circle").attr("class", "dot")
         .merge(dots)
-        .on("mouseover", function(event, d) { 
+        .on("mouseover", function(event, d_dot) { // Use event, d_dot for D3 v6+
             const tooltipEl = document.querySelector('.tooltip'); 
             if (!tooltipEl && currentPage !== 'journey') return; 
-            
-            let valueDisplay, valueLabel, countDisplay = d.count.toLocaleString();
+            let valueDisplay, valueLabel, countDisplay = d_dot.count.toLocaleString();
             if (isRatingType) {
-                valueDisplay = d.value.toFixed(2); valueLabel = currentChartDisplayMode === "total" ? "Movies" : "Avg Rating";
-                if (currentChartDisplayMode === "total") valueDisplay = d.value.toLocaleString();
+                valueDisplay = d_dot.value.toFixed(2); valueLabel = currentChartDisplayMode === "total" ? "Movies" : "Avg Rating";
+                if (currentChartDisplayMode === "total") valueDisplay = d_dot.value.toLocaleString();
             } else {
-                const val = d.value; 
-                valueDisplay = val >= 1e9 ? `$${(val/1e9).toFixed(2)}B` : val >= 1e6 ? `$${(val/1e6).toFixed(2)}M` : `$${val.toLocaleString()}`;
+                const val = d_dot.value; 
+                valueDisplay = fmtMoney(val); // Use fmtMoney
                 valueLabel = currentChartDisplayMode === "total" ? (adjustForInflation ? "Total Revenue (2025$)" : "Total Revenue") : (adjustForInflation ? "Avg Revenue (2025$)" : "Avg Revenue");
             }
-            // Only show tooltip if on a page that has the tooltip element (dashboard)
-            if (tooltipEl && (currentPage === 'dashboard' || currentPage === 'full_dashboard')) { 
-                tooltipEl.innerHTML = `<strong>${d.year}</strong><br><div class="tooltip-row">${valueLabel}: ${valueDisplay}</div><div class="tooltip-row">Movies: ${countDisplay}</div>`;
+            if (tooltipEl && currentPage === 'full_dashboard') { 
+                tooltipEl.innerHTML = `<strong>${d_dot.year}</strong><br><div class="tooltip-row">${valueLabel}: ${valueDisplay}</div><div class="tooltip-row">Movies: ${countDisplay}</div>`;
                 tooltipEl.style.opacity = 0.95;
                 tooltipEl.style.left = (event.pageX) + "px";
                 tooltipEl.style.top = (event.pageY) + "px";
@@ -843,7 +749,7 @@ function updateLineChart(svgId = "line-chart", targetChartG) {
         })
         .on("mouseout", function() {
             const tooltipEl = document.querySelector('.tooltip');
-            if (tooltipEl && (currentPage === 'dashboard' || currentPage === 'full_dashboard')) tooltipEl.style.opacity = 0;
+            if (tooltipEl && currentPage === 'full_dashboard') tooltipEl.style.opacity = 0;
             d3.select(this).transition().duration(100).attr("r", 4);
         })
         .transition().duration(500)
@@ -852,268 +758,422 @@ function updateLineChart(svgId = "line-chart", targetChartG) {
         .attr("r", 4).attr("fill", "#82aaff").attr("stroke", "#0f0f23").attr("stroke-width", 1.5); 
 }
 
+// --- USER-PROVIDED SCATTER PLOT FUNCTIONS (ADAPTED FOR DARK THEME) ---
+function updateHighBudgetScatter() {
+    if (!combined_movies_data) {
+        // console.warn("Combined movie data not available for scatter plot.");
+        return;
+    }
+    const yearLabel = document.getElementById("budget-year-label");
+    if (yearLabel) {
+        yearLabel.textContent = `(${selectedYear})`;
+    }
 
-function setupDashboardControlsEventListeners() {
-    if (currentPage !== 'dashboard' && currentPage !== 'full_dashboard') return;
-
-    const yearSlider = document.getElementById('year-slider');
-    const yearValue = document.getElementById('year-value');
-    const ratingSlider = document.getElementById('rating-slider');
-    const ratingValue = document.getElementById('rating-value');
-    const votesSlider = document.getElementById('votes-slider');
-    const votesValue = document.getElementById('votes-value');
-    const metricRadios = document.querySelectorAll('input[name="map-metric"]');
-    const resetBtn = document.getElementById('reset-btn');
-    const resetZoomBtn = document.getElementById('reset-zoom-btn');
-    const inflationButton = document.getElementById('inflation-btn');
-    const chartModeButton = document.getElementById('chart-mode-btn'); // For full_dashboard
-    const minChartYearSlider = document.getElementById('min-year-slider'); // For full_dashboard
-    const minChartYearValue = document.getElementById('min-year-value'); // For full_dashboard
-    const maxChartYearSlider = document.getElementById('max-year-slider'); // For full_dashboard
-    const maxChartYearValue = document.getElementById('max-year-value'); // For full_dashboard
-    const scatterResetBtn = document.getElementById('scatter-reset-btn');
-    const profitRatioToggle = document.getElementById('toggle-profit-ratio');
-
-    if (yearSlider) yearSlider.addEventListener('input', function() {
-        selectedYear = +this.value;
-        if (yearValue) yearValue.textContent = selectedYear;
-        if (currentPage === 'dashboard' || currentPage === 'full_dashboard') {
-            updateMapVisualization();
-            updateDashboardStatistics(movieCountsByYear[selectedYear] || {});
+    var movies = [];
+    for (var i = 0; i < combined_movies_data.length; i++) {
+        var d_movie_loop = combined_movies_data[i]; // Renamed to avoid conflict
+        if (parseInt(d_movie_loop.Year, 10) !== selectedYear) {
+            continue;
         }
-    });
-
-    if (ratingSlider) ratingSlider.addEventListener('input', function() {
-        minRating = +this.value;
-        if (ratingValue) ratingValue.textContent = minRating.toFixed(1);
-        processMovieData(); 
-        if (currentPage === 'dashboard' || currentPage === 'full_dashboard') {
-            updateMapVisualization();
-            updateDashboardStatistics(movieCountsByYear[selectedYear] || {});
+        var budget = toUSD(d_movie_loop.budget);
+        var revenue = toUSD(d_movie_loop.grossWorldWWide);
+        var rating = parseFloat(d_movie_loop.Rating);
+        if (budget <= 0 || revenue <= 0 || isNaN(rating)) {
+            continue;
         }
-        if (currentPage === 'full_dashboard') {
-            const dashboardChartG = d3.select("#line-chart").select("g");
-            if(!dashboardChartG.empty()) updateLineChart('line-chart', dashboardChartG);
-        }
-    });
-
-    if (votesSlider) votesSlider.addEventListener('input', function() {
-        minVotes = +this.value;
-        if (votesValue) votesValue.textContent = minVotes.toLocaleString();
-        processMovieData(); 
-        if (currentPage === 'dashboard' || currentPage === 'full_dashboard') {
-            updateMapVisualization();
-            updateDashboardStatistics(movieCountsByYear[selectedYear] || {});
-        }
-        if (currentPage === 'full_dashboard') {
-            const dashboardChartG = d3.select("#line-chart").select("g");
-            if(!dashboardChartG.empty()) updateLineChart('line-chart', dashboardChartG);
-        }
-    });
-
-    if (metricRadios) metricRadios.forEach(radio => {
-        radio.addEventListener('change', function() {
-            if (this.checked) {
-                mapMetric = this.value; 
-                if (currentPage === 'dashboard' || currentPage === 'full_dashboard') {
-                    updateMapVisualization();
-                }
-                if (currentPage === 'full_dashboard') {
-                    const dashboardChartG = d3.select("#line-chart").select("g");
-                     if(!dashboardChartG.empty()) {
-                        updateChartTitleAndLabels('chart-title', 'selected-country', dashboardChartG);
-                        updateLineChart('line-chart', dashboardChartG);
-                    }
-                }
-            }
-        });
-    });
-
-    if (resetBtn) resetBtn.addEventListener('click', function() {
-        selectedYear = 2025; minRating = 7; minVotes = 10000; mapMetric = "count";
-        selectedCountry = "United States of America"; 
-        adjustForInflation = false; 
-        chartMode = "average"; // Reset chartMode for full_dashboard
-        minChartYear = 1925; // Reset chart years for full_dashboard
-        maxChartYear = 2025;
-
-        if (yearSlider) yearSlider.value = selectedYear; if (yearValue) yearValue.textContent = selectedYear;
-        if (ratingSlider) ratingSlider.value = minRating; if (ratingValue) ratingValue.textContent = minRating.toFixed(1);
-        if (votesSlider) votesSlider.value = minVotes; if (votesValue) votesValue.textContent = minVotes.toLocaleString();
-        const metricCountRadio = document.getElementById('metric-count');
-        if (metricCountRadio) metricCountRadio.checked = true;
-        
-        if (inflationButton) {
-            inflationButton.textContent = 'Adjust for Inflation';
-            inflationButton.classList.remove('active');
-        }
-        // Reset chart mode button text if it exists on dashboard
-        if (chartModeButton && currentPage === 'full_dashboard') {
-             chartModeButton.textContent = mapMetric === "rating" ? 'Movie Count per Year' : 'Total Revenue per Year';
-             chartModeButton.classList.remove('active'); // Assuming 'active' class is used for yellow style
-        }
-        if (minChartYearSlider && currentPage === 'full_dashboard') {
-            minChartYearSlider.value = minChartYear;
-            if(minChartYearValue) minChartYearValue.textContent = minChartYear;
-        }
-        if (maxChartYearSlider && currentPage === 'full_dashboard') {
-            maxChartYearSlider.value = maxChartYear;
-            if(maxChartYearValue) maxChartYearValue.textContent = maxChartYear;
-        }
-        
-        processMovieData();
-        if (currentPage === 'dashboard' || currentPage === 'full_dashboard') {
-            updateMapVisualization();
-            updateDashboardStatistics(movieCountsByYear[selectedYear] || {});
-            resetMapZoom(); 
-        }
-        if (currentPage === 'full_dashboard') {
-            const dashboardChartG = d3.select("#line-chart").select("g");
-            if(!dashboardChartG.empty()) {
-                const selectedCountryEl = document.getElementById('selected-country');
-                if(selectedCountryEl) selectedCountryEl.textContent = selectedCountry; // Reset selected country display
-                updateChartTitleAndLabels('chart-title', 'selected-country', dashboardChartG);
-                updateLineChart('line-chart', dashboardChartG);
-            }
-        }
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-
-    if (resetZoomBtn) resetZoomBtn.addEventListener('click', resetMapZoom);
-
-    if (inflationButton) inflationButton.addEventListener('click', function() {
-        // This button might affect dashboard summary stats even if line chart is not on map-only page
-        if (mapMetric === "rating" && currentPage === 'full_dashboard') { 
-             // Still allow toggle for consistency if user expects it, but primary effect is on revenue
-        }
-        adjustForInflation = !adjustForInflation;
-        this.textContent = adjustForInflation ? '2025 Dollars (ON)' : 'Adjust for Inflation';
-        this.classList.toggle('active', adjustForInflation); 
-        
-        processMovieData(); 
-        if (currentPage === 'dashboard' || currentPage === 'full_dashboard') {
-            updateMapVisualization(); 
-            updateDashboardStatistics(movieCountsByYear[selectedYear] || {}); 
-        }
-        if (currentPage === 'full_dashboard') {
-            const dashboardChartG = d3.select("#line-chart").select("g");
-            if(!dashboardChartG.empty()) {
-                updateChartTitleAndLabels('chart-title', 'selected-country', dashboardChartG);
-                updateLineChart('line-chart', dashboardChartG);
-            }
-        }
-    });
-
-    // Event listeners for full_dashboard line chart controls
-    if (currentPage === 'full_dashboard') {
-        if (chartModeButton) chartModeButton.addEventListener('click', function() {
-            chartMode = chartMode === "average" ? "total" : "average";
-            // Update button text and style
-            if (mapMetric === "rating") {
-                this.textContent = chartMode === "total" ? 'Avg Rating per Year' : 'Movie Count per Year';
-            } else {
-                this.textContent = chartMode === "total" ? 'Avg Revenue per Movie' : 'Total Revenue per Year';
-            }
-            this.classList.toggle('active', chartMode === "total");
-
-            const dashboardChartG = d3.select("#line-chart").select("g");
-            if(!dashboardChartG.empty()) {
-                updateChartTitleAndLabels('chart-title', 'selected-country', dashboardChartG);
-                updateLineChart('line-chart', dashboardChartG);
-            }
-        });
-
-        if (minChartYearSlider) minChartYearSlider.addEventListener('input', function() {
-            minChartYear = +this.value;
-            if (minChartYear > maxChartYear) { 
-                maxChartYear = minChartYear;
-                if (maxChartYearSlider) maxChartYearSlider.value = maxChartYear;
-                if (maxChartYearValue) maxChartYearValue.textContent = maxChartYear;
-            }
-            if (minChartYearValue) minChartYearValue.textContent = minChartYear;
-            const dashboardChartG = d3.select("#line-chart").select("g");
-            if(!dashboardChartG.empty()) updateLineChart('line-chart', dashboardChartG);
-        });
-
-        if (maxChartYearSlider) maxChartYearSlider.addEventListener('input', function() {
-            maxChartYear = +this.value;
-            if (maxChartYear < minChartYear) { 
-                minChartYear = maxChartYear;
-                if (minChartYearSlider) minChartYearSlider.value = minChartYear;
-                if (minChartYearValue) minChartYearValue.textContent = minChartYear;
-            }
-            if (maxChartYearValue) maxChartYearValue.textContent = maxChartYear;
-            const dashboardChartG = d3.select("#line-chart").select("g");
-            if(!dashboardChartG.empty()) updateLineChart('line-chart', dashboardChartG);
+        movies.push({
+            Title: d_movie_loop.Title,
+            BudgetUSD: budget,
+            RevenueUSD: revenue,
+            Rating: rating.toFixed(1),
+            Country: (d_movie_loop.countries_origin ? d_movie_loop.countries_origin : "").replace(/[\[\]']+/g, ""),
+            Description: d_movie_loop.description ? d_movie_loop.description : "",
+            Stars: cleanArray(d_movie_loop.stars),
+            Writers: cleanArray(d_movie_loop.writers),
+            Directors: cleanArray(d_movie_loop.directors),
+            Genres: cleanArray(d_movie_loop.genres),
+            Languages: cleanArray(d_movie_loop.Languages)
         });
     }
 
-    if (scatterResetBtn) {
-        scatterResetBtn.addEventListener('click', function() {
-            if (scatterSvg && scatterZoom) {
-                scatterSvg.transition()
-                    .duration(750)
-                    .call(scatterZoom.transform, d3.zoomIdentity);
-            }
-        });
+    movies.sort(function(a, b) {
+        return b.BudgetUSD - a.BudgetUSD;
+    });
+    movies = movies.slice(0, 25);
+
+    var container = document.getElementById("scatter-container");
+    if (!container) {
+        console.warn("Scatter container #scatter-container not found.");
+        return;
+    }
+    var fullWidth = container.clientWidth;
+    var margin = { top: 40, right: 40, bottom: 60, left: 80 };
+    var width = fullWidth - margin.left - margin.right;
+    var height = 500 - margin.top - margin.bottom; // SVG height is 500
+
+    if (!scatterSvg || scatterSvg.empty()) { // Check if scatterSvg is not initialized or selection is empty
+        const scatterPlotSVG = d3.select("#scatter-plot");
+        if (scatterPlotSVG.empty()) {
+            console.warn("#scatter-plot SVG element not found in HTML.");
+            return;
+        }
+        scatterSvg = scatterPlotSVG.attr("width", fullWidth).attr("height", 500);
+        
+        scatterSvg.selectAll("*").remove(); // Clear previous content if re-initializing
+
+        scatterView = scatterSvg.append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+        
+        scatterView.append("rect")
+            .attr("class", "bg-rect-scatter") 
+            .attr("fill", "transparent") 
+            .attr("width", width)
+            .attr("height", height);
+
+        dotsScatter = scatterView.append("g").attr("class", "dots-scatter"); 
+        xAxisScatterG = scatterView.append("g").attr("class", "x-axis scatter-axis"); 
+        yAxisScatterG = scatterView.append("g").attr("class", "y-axis scatter-axis"); 
+
+        scatterView.append("text")
+            .attr("class", "x-label scatter-label") 
+            .attr("text-anchor", "middle")
+            .attr("x", width / 2) 
+            .attr("y", height + margin.bottom - 15)
+            .style("font-size", "12px") 
+            .style("fill", "#e0e0e0") 
+            .text("Budget (USD)");
+
+        scatterView.append("text")
+            .attr("class", "y-axis-label scatter-label") 
+            .attr("text-anchor", "middle")
+            .attr("transform", "rotate(-90)")
+            .attr("x", -height / 2)
+            .attr("y", -margin.left + 25) 
+            .style("font-size", "12px")
+            .style("fill", "#e0e0e0");
+
+        scatterZoom = d3.zoom()
+            .scaleExtent([0.5, 10])
+            .translateExtent([[-width, -height], [2 * width, 2 * height]])
+            .on("zoom", zoomed); 
+
+        scatterSvg.call(scatterZoom);
+    } else { // If already initialized, just update sizes
+        scatterSvg.attr("width", fullWidth);
+        scatterView.select(".bg-rect-scatter").attr("width", width).attr("height", height);
+        scatterView.select(".x-label.scatter-label").attr("x", width / 2).attr("y", height + margin.bottom -15);
+        scatterView.select(".y-axis-label.scatter-label").attr("x", -height / 2).attr("y", -margin.left + 25);
+        xAxisScatterG.attr("transform", "translate(0," + height + ")"); // Ensure axis group is at bottom
+    }
+    
+    function zoomed() { // Internal zoom handler
+        if (!d3.event || !d3.event.transform) return;
+        var t = d3.event.transform;
+        var zx = t.rescaleX(xScatter);
+        var zy = t.rescaleY(yScatter);
+        xAxisScatterG.call(d3.axisBottom(zx).tickFormat(fmtMoney).tickSizeOuter(0));
+        yAxisScatterG.call(showProfitRatio ? d3.axisLeft(zy).ticks(6).tickSizeOuter(0) : d3.axisLeft(zy).tickFormat(fmtMoney).tickSizeOuter(0));
+        dotsScatter.selectAll("circle")
+            .attr("cx", function(d_circle) { return zx(d_circle.BudgetUSD); })
+            .attr("cy", function(d_circle) { return zy(yValue(d_circle)); });
     }
 
-    if (profitRatioToggle) {
-        profitRatioToggle.addEventListener('change', function(e) {
-            showProfitRatio = e.target.checked;
-            updateScatterPlot();
-        });
+    xScatter = d3.scaleLinear()
+        .domain([0, d3.max(movies, function(d_movie) { return d_movie.BudgetUSD; }) * 1.1 || 1])
+        .range([0, width])
+        .nice();
+
+    var yValue = function(d_movie) {
+        if (showProfitRatio) {
+            return d_movie.BudgetUSD > 0 ? d_movie.RevenueUSD / d_movie.BudgetUSD : 0;
+        } else {
+            return d_movie.RevenueUSD;
+        }
+    };
+
+    yScatter = d3.scaleLinear()
+        .domain([0, d3.max(movies, function(d_movie) { return yValue(d_movie); }) * 1.1 || 1])
+        .range([height, 0])
+        .nice();
+    
+    scatterView.selectAll(".no-data-scatter-text").remove();
+    if (movies.length === 0) {
+        scatterView.append("text")
+            .attr("class", "no-data-scatter-text")
+            .attr("x", width / 2)
+            .attr("y", height / 2)
+            .attr("text-anchor", "middle")
+            .style("fill", "#a0a0b0")
+            .text(`No movie data for ${selectedYear} with current filters.`);
+    }
+
+    var xAxisFormat = d3.axisBottom(xScatter).tickFormat(fmtMoney).tickSizeOuter(0);
+    var yAxisFormat = showProfitRatio ? d3.axisLeft(yScatter).ticks(6).tickSizeOuter(0) : d3.axisLeft(yScatter).tickFormat(fmtMoney).tickSizeOuter(0);
+    
+    xAxisScatterG.attr("transform", "translate(0," + height + ")") // Ensure x-axis is at the bottom
+        .transition().duration(500)
+        .call(xAxisFormat)
+        .selectAll("text")
+            .style("fill", "#a0a0b0")
+            .style("font-size", "10px");
+    xAxisScatterG.select(".domain").style("stroke", "#718096"); // Style axis line
+
+
+    yAxisScatterG.transition().duration(500)
+        .call(yAxisFormat)
+        .selectAll("text")
+            .style("fill", "#a0a0b0")
+            .style("font-size", "10px");
+    yAxisScatterG.select(".domain").style("stroke", "#718096"); // Style axis line
+
+
+    scatterView.select(".y-axis-label.scatter-label").text(showProfitRatio ? "Revenue ÷ Budget Ratio" : "Revenue (USD)");
+
+    var dots = dotsScatter.selectAll("circle").data(movies, function(d_movie) { return d_movie.Title + d_movie.Year; });
+
+    dots.exit()
+        .transition().duration(300)
+        .attr("r", 0)
+        .remove();
+
+    dots.enter()
+        .append("circle")
+        .attr("r", 0)
+        .attr("fill", "#82aaff") 
+        .attr("stroke", "#0f0f23") 
+        .attr("stroke-width", 1.5)
+        .attr("cx", function(d_movie) { return xScatter(d_movie.BudgetUSD); })
+        .attr("cy", function(d_movie) { return yScatter(yValue(d_movie)); })
+        .on("mouseover", function(event, d_movie) { 
+            const tooltipEl = d3.select("#movie-tooltip");
+            tooltipEl.html(
+                "<strong>" + d_movie.Title + "</strong><br>" +
+                "<div><strong>Country:</strong> " + (d_movie.Country || "N/A") + "</div>" +
+                "<div><strong>Rating:</strong> " + d_movie.Rating + "</div>" +
+                "<div><strong>Budget:</strong> " + fmtMoney(d_movie.BudgetUSD) + "</div>" +
+                "<div><strong>Revenue:</strong> " + fmtMoney(d_movie.RevenueUSD) + "</div>" +
+                (showProfitRatio ? "<div><strong>Revenue ÷ Budget:</strong> " + (d_movie.BudgetUSD > 0 ? (d_movie.RevenueUSD / d_movie.BudgetUSD).toFixed(2) : "N/A") + "</div>" : "")
+            )
+            .style("left", (event.pageX + 12) + "px")
+            .style("top", (event.pageY - 20) + "px")
+            .style("opacity", 0.95);
+            d3.select(this).transition().duration(100).attr("r", 8);
+        })
+        .on("mousemove", function(event) { 
+            d3.select("#movie-tooltip")
+            .style("left", (event.pageX + 12) + "px")
+            .style("top", (event.pageY - 20) + "px");
+        })
+        .on("mouseout", function() { 
+            d3.select("#movie-tooltip").style("opacity", 0);
+            d3.select(this).transition().duration(100).attr("r", 6);
+        })
+        .merge(dots) // Merge enter and update selections
+        .transition().duration(500)
+        .attr("cx", function(d_movie) { return xScatter(d_movie.BudgetUSD); })
+        .attr("cy", function(d_movie) { return yScatter(yValue(d_movie)); })
+        .attr("r", 6);
+}
+
+function resetScatterZoom() {
+    const svg = d3.select("#scatter-plot");
+    if (!svg.empty() && scatterZoom) { 
+        svg.transition()
+            .duration(750)
+            .call(scatterZoom.transform, d3.zoomIdentity);
     }
 }
 
-function updateDashboardStatistics(dataForYear) {
-    // This function is dashboard-specific
-    if (currentPage !== 'dashboard' && currentPage !== 'full_dashboard') return;
 
+// --- EVENT LISTENERS & OTHER UI FUNCTIONS ---
+function setupDashboardControlsEventListeners() {
+    if (currentPage !== 'full_dashboard') return;
+
+    const yearSliderEl = document.getElementById('year-slider');
+    const yearValueEl = document.getElementById('year-value');
+    const ratingSliderEl = document.getElementById('rating-slider');
+    const ratingValueEl = document.getElementById('rating-value');
+    const votesSliderEl = document.getElementById('votes-slider');
+    const votesValueEl = document.getElementById('votes-value');
+    const metricRadiosEl = document.querySelectorAll('input[name="map-metric"]');
+    const resetBtnEl = document.getElementById('reset-btn');
+    const resetZoomBtnEl = document.getElementById('reset-zoom-btn'); 
+    const inflationButtonEl = document.getElementById('inflation-btn');
+    const chartModeButtonEl = document.getElementById('chart-mode-btn');
+    const minChartYearSliderEl = document.getElementById('min-year-slider');
+    const minChartYearValueEl = document.getElementById('min-year-value');
+    const maxChartYearSliderEl = document.getElementById('max-year-slider');
+    const maxChartYearValueEl = document.getElementById('max-year-value');
+    const scatterResetBtnEl = document.getElementById('scatter-reset-btn');
+    const profitRatioToggleEl = document.getElementById('toggle-profit-ratio');
+
+    if (yearSliderEl) yearSliderEl.addEventListener('input', function() {
+        selectedYear = +this.value;
+        if (yearValueEl) yearValueEl.textContent = selectedYear;
+        updateMapVisualization(); 
+        updateDashboardStatistics(movieCountsByYear[selectedYear] || {}); 
+        updateHighBudgetScatter(); // Update scatter plot for new year
+    });
+
+    if (ratingSliderEl) ratingSliderEl.addEventListener('input', function() {
+        minRating = +this.value;
+        if (ratingValueEl) ratingValueEl.textContent = minRating.toFixed(1);
+        processMovieData(); 
+    });
+
+    if (votesSliderEl) votesSliderEl.addEventListener('input', function() {
+        minVotes = +this.value;
+        if (votesValueEl) votesValueEl.textContent = minVotes.toLocaleString();
+        processMovieData(); 
+    });
+
+    if (metricRadiosEl) metricRadiosEl.forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.checked) {
+                mapMetric = this.value; 
+                updateMapVisualization(); 
+                const dashboardChartG = d3.select("#line-chart").select("g");
+                 if(!dashboardChartG.empty()) {
+                    updateChartTitleAndLabels('chart-title', 'selected-country', dashboardChartG);
+                    updateLineChart('line-chart', dashboardChartG);
+                }
+            }
+        });
+    });
+
+    if (resetBtnEl) resetBtnEl.addEventListener('click', function() {
+        selectedYear = 2025; minRating = 7; minVotes = 10000; mapMetric = "count";
+        selectedCountry = "United States of America"; 
+        adjustForInflation = false; 
+        chartMode = "average"; 
+        minChartYear = 1925; 
+        maxChartYear = 2025;
+        showProfitRatio = false; 
+
+        if (yearSliderEl) yearSliderEl.value = selectedYear; if (yearValueEl) yearValueEl.textContent = selectedYear;
+        if (ratingSliderEl) ratingSliderEl.value = minRating; if (ratingValueEl) ratingValueEl.textContent = minRating.toFixed(1);
+        if (votesSliderEl) votesSliderEl.value = minVotes; if (votesValueEl) votesValueEl.textContent = minVotes.toLocaleString();
+        const metricCountRadio = document.getElementById('metric-count');
+        if (metricCountRadio) metricCountRadio.checked = true;
+        if (inflationButtonEl) {
+            inflationButtonEl.textContent = 'Adjust for Inflation';
+            inflationButtonEl.classList.remove('active');
+        }
+        if (chartModeButtonEl) {
+             chartModeButtonEl.textContent = mapMetric === "rating" ? 'Movie Count per Year' : 'Total Revenue per Year'; // This should be based on default mapMetric
+             chartModeButtonEl.classList.remove('active');
+        }
+        if (minChartYearSliderEl) {
+            minChartYearSliderEl.value = minChartYear;
+            if(minChartYearValueEl) minChartYearValueEl.textContent = minChartYear;
+        }
+        if (maxChartYearSliderEl) { 
+            maxChartYearSliderEl.value = maxChartYear; 
+            if(maxChartYearValueEl) maxChartYearValueEl.textContent = maxChartYear;
+        }
+        if (profitRatioToggleEl) profitRatioToggleEl.checked = false;
+        
+        processMovieData(); 
+        resetMapZoom(); 
+        resetScatterZoom();
+        
+        const selectedCountryEl = document.getElementById('selected-country');
+        if(selectedCountryEl) selectedCountryEl.textContent = selectedCountry; 
+         const dashboardChartG = d3.select("#line-chart").select("g");
+            if(!dashboardChartG.empty()) {
+                updateChartTitleAndLabels('chart-title', 'selected-country', dashboardChartG); // updateLineChart called by processMovieData
+            }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    if (resetZoomBtnEl) resetZoomBtnEl.addEventListener('click', resetMapZoom);
+
+    if (scatterResetBtnEl) {
+        scatterResetBtnEl.addEventListener("click", resetScatterZoom);
+    }
+    if (profitRatioToggleEl) {
+        profitRatioToggleEl.addEventListener("change", function (e) {
+            showProfitRatio = e.target.checked;
+            updateHighBudgetScatter(); 
+        });
+    }
+
+    if (inflationButtonEl) inflationButtonEl.addEventListener('click', function() {
+        adjustForInflation = !adjustForInflation;
+        this.textContent = adjustForInflation ? '2025 Dollars (ON)' : 'Adjust for Inflation';
+        this.classList.toggle('active', adjustForInflation); 
+        processMovieData(); 
+    });
+
+    if (chartModeButtonEl) chartModeButtonEl.addEventListener('click', function() {
+        chartMode = chartMode === "average" ? "total" : "average";
+        if (mapMetric === "rating") {
+            this.textContent = chartMode === "total" ? 'Avg Rating per Year' : 'Movie Count per Year';
+        } else {
+            this.textContent = chartMode === "total" ? 'Avg Revenue per Movie' : 'Total Revenue per Year';
+        }
+        this.classList.toggle('active', chartMode === "total");
+        const dashboardChartG = d3.select("#line-chart").select("g");
+        if(!dashboardChartG.empty()) {
+            updateChartTitleAndLabels('chart-title', 'selected-country', dashboardChartG);
+            updateLineChart('line-chart', dashboardChartG);
+        }
+    });
+
+    if (minChartYearSliderEl) minChartYearSliderEl.addEventListener('input', function() {
+        minChartYear = +this.value;
+        if (minChartYear > maxChartYear) { 
+            maxChartYear = minChartYear;
+            if (maxChartYearSliderEl) maxChartYearSliderEl.value = maxChartYear; 
+            if (maxChartYearValueEl) maxChartYearValueEl.textContent = maxChartYear;
+        }
+        if (minChartYearValueEl) minChartYearValueEl.textContent = minChartYear;
+        const dashboardChartG = d3.select("#line-chart").select("g");
+        if(!dashboardChartG.empty()) updateLineChart('line-chart', dashboardChartG);
+    });
+
+    if (maxChartYearSliderEl) maxChartYearSliderEl.addEventListener('input', function() { 
+        maxChartYear = +this.value;
+        if (maxChartYear < minChartYear) { 
+            minChartYear = maxChartYear;
+            if (minChartYearSliderEl) minChartYearSliderEl.value = minChartYear;
+            if (minChartYearValueEl) minChartYearValueEl.textContent = minChartYear;
+        }
+        if (maxChartYearValueEl) maxChartYearValueEl.textContent = maxChartYear;
+        const dashboardChartG = d3.select("#line-chart").select("g");
+        if(!dashboardChartG.empty()) updateLineChart('line-chart', dashboardChartG);
+    });
+}
+
+function updateDashboardStatistics(dataForYear) {
+    if (currentPage !== 'full_dashboard') return;
     const totalMoviesEl = document.getElementById('total-movies');
     const totalCountriesEl = document.getElementById('total-countries');
     const avgRatingEl = document.getElementById('avg-rating');
     const totalRevenueEl = document.getElementById('total-revenue');
     const totalRevenueLabelEl = totalRevenueEl ? totalRevenueEl.parentElement.querySelector('.stat-label') : null;
-
     if (!totalMoviesEl || !totalCountriesEl || !avgRatingEl || !totalRevenueEl || !totalRevenueLabelEl) {
         return;
     }
-
     const countriesWithData = Object.keys(dataForYear);
     const totalMovies = d3.sum(Object.values(dataForYear), d => d.count || 0);
     const totalRevenueValue = d3.sum(Object.values(dataForYear), d => d.revenue || 0); 
-    
     let totalRatingSum = 0, totalRatingCount = 0;
     Object.values(dataForYear).forEach(d => { totalRatingSum += d.ratingSum || 0; totalRatingCount += d.ratingCount || 0; });
     const avgRatingValue = totalRatingCount > 0 ? totalRatingSum / totalRatingCount : 0;
-
     totalMoviesEl.textContent = totalMovies.toLocaleString();
     totalCountriesEl.textContent = countriesWithData.length;
     avgRatingEl.textContent = avgRatingValue.toFixed(1);
-    
     const revenueText = totalRevenueValue > 0 ? 
-        '$' + (totalRevenueValue / 1e9).toFixed(1) + 'B' : 
-        (totalMovies > 0 && Object.values(dataForYear).some(d => d.revenue !== undefined) ? '$0B' : 'N/A');
+        fmtMoney(totalRevenueValue) : 
+        (totalMovies > 0 && Object.values(dataForYear).some(d => d.revenue !== undefined) ? '$0' : 'N/A'); // Use fmtMoney
     totalRevenueEl.textContent = revenueText;
     totalRevenueLabelEl.textContent = adjustForInflation ? 'Total Revenue (2025 $)' : 'Total Revenue';
 }
 
-function fmtMoney(n) {
-    if (Math.abs(n) >= 1e9) {
-        return "$" + (n / 1e9).toFixed(1) + "B";
-    }
-    if (Math.abs(n) >= 1e6) {
-        return "$" + (n / 1e6).toFixed(1) + "M";
-    }
-    if (Math.abs(n) >= 1e3) {
-        return "$" + (n / 1e3).toFixed(0) + "K";
-    }
-    return "$" + n.toLocaleString();
-}
 
 window.addEventListener('resize', debounce(() => {
-    if ((currentPage === 'dashboard' || currentPage === 'full_dashboard') && svgMap) {
+    if ((currentPage === 'full_dashboard') && svgMap) {
         const mapContainer = document.getElementById('map-container');
         if (mapContainer) {
             const width = mapContainer.clientWidth;
@@ -1125,230 +1185,26 @@ window.addEventListener('resize', debounce(() => {
         }
     }
     if (currentPage === 'journey') {
-        const journeyChartG = d3.select("#line-chart-journey").select("g");
-        if(!journeyChartG.empty()){
-            createLineChart('line-chart-container-journey', 'line-chart-journey'); 
-            updateChartTitleAndLabels('chart-title-journey', 'selected-country-journey', d3.select("#line-chart-journey").select("g"));
-            updateLineChart('line-chart-journey', d3.select("#line-chart-journey").select("g"));
+        const journeyContainer = document.getElementById('line-chart-container-journey');
+        const journeySVG = document.getElementById('line-chart-journey');
+        if(journeyContainer && journeySVG && !d3.select("#line-chart-journey").select("g").empty()){ // check if g exists
+            const journeyChartG = createLineChart('line-chart-container-journey', 'line-chart-journey'); 
+            if(journeyChartG){
+                updateChartTitleAndLabels('chart-title-journey', 'selected-country-journey', journeyChartG);
+                updateLineChart('line-chart-journey', journeyChartG);
+            }
         }
     }
     if (currentPage === 'full_dashboard') {
-        const dashboardChartG = d3.select("#line-chart").select("g");
-        if(!dashboardChartG.empty()){
-            createLineChart('line-chart-container', 'line-chart'); 
-            updateChartTitleAndLabels('chart-title', 'selected-country', d3.select("#line-chart").select("g"));
-            updateLineChart('line-chart', d3.select("#line-chart").select("g"));
+        const dashboardContainer = document.getElementById('line-chart-container');
+        const dashboardSVG = document.getElementById('line-chart');
+         if(dashboardContainer && dashboardSVG && !d3.select("#line-chart").select("g").empty()){ // check if g exists
+            const dashboardChartG = createLineChart('line-chart-container', 'line-chart'); 
+            if(dashboardChartG){
+                updateChartTitleAndLabels('chart-title', 'selected-country', dashboardChartG);
+                updateLineChart('line-chart', dashboardChartG);
+            }
         }
-    }
-    if (scatterSvg) {
-        createScatterPlot(); // Recreate scatter plot with new dimensions
-        updateScatterPlot(); // Update data
+        updateHighBudgetScatter(); // Call the user's function on resize
     }
 }, 250));
-
-let scatterZoom;
-let showProfitRatio = false;
-let scatterSvg, scatterView, dotsScatter;
-let xScatter, yScatter;
-let xAxisScatterG, yAxisScatterG;
-
-function createScatterPlot() {
-    const container = document.getElementById('scatter-container');
-    if (!container) {
-        console.warn("Scatter plot container not found");
-        return;
-    }
-
-    // Clear any existing content
-    d3.select("#scatter-plot").selectAll("*").remove();
-
-    const width = container.clientWidth;
-    const height = 500;
-    const margin = { top: 40, right: 40, bottom: 60, left: 80 };
-    const innerWidth = width - margin.left - margin.right;
-    const innerHeight = height - margin.top - margin.bottom;
-
-    scatterSvg = d3.select("#scatter-plot")
-        .attr("width", width)
-        .attr("height", height);
-
-    scatterView = scatterSvg.append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
-
-    // Add white background for dark theme
-    scatterView.append("rect")
-        .attr("class", "bg")
-        .attr("fill", "transparent")
-        .attr("width", innerWidth)
-        .attr("height", innerHeight);
-
-    // Create groups for dots/axes
-    dotsScatter = scatterView.append("g").attr("class", "dots");
-    xAxisScatterG = scatterView.append("g").attr("class", "x-axis");
-    yAxisScatterG = scatterView.append("g").attr("class", "y-axis");
-
-    // Add axis labels
-    scatterView.append("text")
-        .attr("class", "x-label")
-        .attr("text-anchor", "middle")
-        .attr("y", height - margin.bottom + 45)
-        .attr("x", innerWidth / 2)
-        .style("fill", "#e0e0e0")
-        .text("Budget (USD)");
-
-    scatterView.append("text")
-        .attr("class", "y-axis-label")
-        .attr("text-anchor", "middle")
-        .attr("transform", "rotate(-90)")
-        .attr("y", -68)
-        .attr("x", -innerHeight / 2)
-        .style("fill", "#e0e0e0")
-        .text("Revenue (USD)");
-
-    // Setup zoom
-    scatterZoom = d3.zoom()
-        .scaleExtent([0.5, 10])
-        .translateExtent([[-width, -height], [2 * width, 2 * height]])
-        .on("zoom", zoomed);
-
-    scatterSvg.call(scatterZoom);
-}
-
-function zoomed() {
-    const transform = d3.event.transform;
-    const newX = transform.rescaleX(xScatter);
-    const newY = transform.rescaleY(yScatter);
-
-    // Update axes
-    xAxisScatterG.call(d3.axisBottom(newX).tickFormat(d3.format("~s")));
-    yAxisScatterG.call(showProfitRatio ? 
-        d3.axisLeft(newY).ticks(6) :
-        d3.axisLeft(newY).tickFormat(d3.format("~s")));
-
-    // Update dots positions
-    dotsScatter.selectAll("circle")
-        .attr("cx", d => newX(parseFloat(d.budget)))
-        .attr("cy", d => newY(showProfitRatio ? 
-            parseFloat(d.grossWorldWWide) / parseFloat(d.budget) :
-            parseFloat(d.grossWorldWWide)));
-}
-
-function showMovieTooltip(d) {
-    const tooltip = d3.select("#movie-tooltip");
-    const budget = parseFloat(d.budget);
-    const revenue = parseFloat(d.grossWorldWWide);
-    const ratio = budget > 0 ? revenue / budget : 0;
-    
-    tooltip.html(`
-        <strong>${d.Title}</strong>
-        <div><strong>Budget:</strong> ${fmtMoney(budget)}</div>
-        <div><strong>Revenue:</strong> ${fmtMoney(revenue)}</div>
-        <div><strong>Revenue/Budget:</strong> ${ratio.toFixed(2)}</div>
-        <div><strong>Rating:</strong> ${d.Rating}</div>
-    `)
-    .style("opacity", 0.95)
-    .style("left", (d3.event.pageX + 10) + "px")
-    .style("top", (d3.event.pageY - 10) + "px");
-
-    d3.select(this)
-        .transition()
-        .duration(100)
-        .attr("r", 8);
-}
-
-function updateMovieTooltip() {
-    d3.select("#movie-tooltip")
-        .style("left", (d3.event.pageX + 10) + "px")
-        .style("top", (d3.event.pageY - 10) + "px");
-}
-
-function hideMovieTooltip() {
-    d3.select("#movie-tooltip").style("opacity", 0);
-    d3.select(this)
-        .transition()
-        .duration(100)
-        .attr("r", 6);
-}
-
-function updateScatterPlot() {
-    // Check if scatter plot elements exist
-    if (!scatterSvg || !dotsScatter || !xAxisScatterG || !yAxisScatterG) {
-        console.warn("Scatter plot not initialized yet");
-        return;
-    }
-
-    if (!combined_movies_data) {
-        console.warn("No movie data available");
-        return;
-    }
-
-    const yearLabel = document.getElementById("budget-year-label");
-    if (yearLabel) {
-        yearLabel.textContent = `(${selectedYear})`;
-    }
-
-    const movies = combined_movies_data
-        .filter(d => {
-            const year = parseInt(d.Year, 10);
-            if (year !== selectedYear) return false;
-            
-            const budget = parseFloat(d.budget?.replace(/[^0-9.]/g, "") || 0);
-            const revenue = parseFloat(d.grossWorldWWide?.replace(/[^0-9.]/g, "") || 0);
-            const rating = parseFloat(d.Rating);
-            
-            return budget > 0 && revenue > 0 && !isNaN(rating);
-        })
-        .sort((a, b) => parseFloat(b.budget) - parseFloat(a.budget))
-        .slice(0, 25);
-
-    // Update scales
-    const container = document.getElementById('scatter-container');
-    const width = container.clientWidth;
-    const margin = { top: 40, right: 40, bottom: 60, left: 80 };
-    const innerWidth = width - margin.left - margin.right;
-    const innerHeight = 500 - margin.top - margin.bottom;
-
-    xScatter = d3.scaleLinear()
-        .domain([0, d3.max(movies, d => parseFloat(d.budget)) * 1.1])
-        .range([0, innerWidth])
-        .nice();
-
-    const yValue = showProfitRatio ? 
-        d => parseFloat(d.grossWorldWWide) / parseFloat(d.budget) :
-        d => parseFloat(d.grossWorldWWide);
-
-    yScatter = d3.scaleLinear()
-        .domain([0, d3.max(movies, yValue) * 1.1])
-        .range([innerHeight, 0])
-        .nice();
-
-    // Update axes
-    xAxisScatterG
-        .attr("transform", `translate(0,${innerHeight})`)
-        .call(d3.axisBottom(xScatter).tickFormat(d3.format("~s")));
-
-    yAxisScatterG
-        .call(showProfitRatio ? 
-            d3.axisLeft(yScatter).ticks(6) :
-            d3.axisLeft(yScatter).tickFormat(d3.format("~s")));
-
-    // Update dots
-    const dots = dotsScatter.selectAll("circle")
-        .data(movies, d => d.Title);
-
-    dots.exit().remove();
-
-    const dotsEnter = dots.enter()
-        .append("circle")
-        .attr("r", 6)
-        .attr("fill", "#82aaff")
-        .attr("stroke", "#0f0f23")
-        .attr("stroke-width", 1.5);
-
-    dots.merge(dotsEnter)
-        .attr("cx", d => xScatter(parseFloat(d.budget)))
-        .attr("cy", d => yScatter(yValue(d)))
-        .on("mouseover", showMovieTooltip)
-        .on("mousemove", updateMovieTooltip)
-        .on("mouseout", hideMovieTooltip);
-}
