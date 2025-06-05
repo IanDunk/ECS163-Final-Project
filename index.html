@@ -478,38 +478,8 @@
         color: #6c757d;
         font-size: 1rem;
       }
-
-      /* ensures the table stretches full width and has no spacing between borders */
-      .styled-table-container table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 1rem;
-        font-size: 0.95rem;
-      }
-
-      /* applies consistent padding, border, and left-aligns text */
-      .styled-table-container th,
-      .styled-table-container td {
-        padding: 8px 12px;
-        border: 1px solid #dee2e6;
-        text-align: left;
-      }
-
-      /* gives a light gray background to the header row */
-      .styled-table-container thead {
-        background-color: #f1f3f5;
-      }
-
-      /* makes every even-numbered row a slightly different color for readability */
-      .styled-table-container tr:nth-child(even) {
-        background-color: #f9f9f9;
-      }
-
-      /* highlight on hover */
-      #high-budget-table tbody tr:hover {
-        background-color: #e9f2ff;
-      }
       
+
       /* Responsive Design */
       @media (max-width: 768px) {
         .header h1 {
@@ -795,41 +765,34 @@
           <svg id="line-chart"></svg>
         </div>
       </section>
-      <!-- section to hold the table for top 25 percent of most expensive movies -->
+      <!-- scatter plot section -->
       <section class="viz-section">
-        <!-- title of the section, with the year and updated js -->
+        <!-- the chart title -->
         <h2 class="section-title">
-          🎬 Top 25% Budget Movies in 
-          <span id="budget-year-label">2025</span>
+          🎯 Do Bigger Budgets Mean Bigger Profits?
+          <!-- span shows selected year -->
+          <span id="budget-year-label" style="font-weight: normal; font-size: 0.9rem; margin-left: 1rem;"></span>
         </h2>
-        <!-- description telling what the table shows-->
+
+        <!-- buttons and toggle box for this chart -->
+        <div class="button-group">
+          <!-- check box to toggle the ratio mode -->
+          <label for="toggle-profit-ratio" style="display: flex; align-items: center; gap: 0.5rem;">
+            <input type="checkbox" id="toggle-profit-ratio" />
+            Show Revenue-to-Budget Ratio
+          </label>
+
+          <!-- button to reset the zoom on the scatter plot -->
+          <button id="scatter-reset-btn" class="button reset-zoom-button">Reset Zoom</button>
+        </div>
+        <!-- description of the chart -->
         <p class="chart-description">
-          Revenue and budget figures are converted to USD for comparison.
-          Click the headers on the table to sort by budget, rating, ect.
+          This scatter plot compares movie budgets and worldwide revenue.
+          Hover over a dot to see full movie info.
         </p>
-
-        <!-- cointainer to style the whole table -->
-        <div class="styled-table-container">
-          <!-- table headers, clickable for sorting -->
-          <table id="high-budget-table">
-            <thead>
-              <tr>
-                <th data-key="Title">Title</th>
-                <th data-key="Country">Country</th>
-                <th data-key="Rating">Rating</th>
-                <th data-key="BudgetUSD">Budget&nbsp;(USD)</th>
-                <th data-key="RevenueUSD">Revenue&nbsp;(USD)</th>
-              </tr>
-            </thead>
-            <!-- table body, data will be filled -->
-            <tbody><!-- js injects rows here --></tbody>
-          </table>
-
-          <!-- message that shows if there is no movie data for that year -->
-          <div id="high-budget-fallback"
-              style="display:none;color:#6c757d;padding:1rem;">
-            No data available for the selected year.
-          </div>
+        <!-- container for scatter plot chart -->
+        <div id="scatter-container" style="width: 100%; height: 500px;">
+          <svg id="scatter-plot" width="100%" height="100%"></svg>
         </div>
       </section>
     </div>

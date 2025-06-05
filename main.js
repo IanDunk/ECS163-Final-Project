@@ -15,6 +15,11 @@ let adjustForInflation = false; // New inflation adjustment toggle
 let chartMode = "average"; // "average" or "total" - controls line chart display mode
 let minChartYear = 1925; // Minimum year for line chart
 let maxChartYear = 2025; // Maximum year for line chart
+let scatterZoom; 
+let showProfitRatio = false;
+let scatterSvg, scatterView, dotsScatter;
+let xScatter, yScatter;
+let xAxisScatterG, yAxisScatterG;
 
 // Add missing legendGroup variable
 let legendGroup;
@@ -113,7 +118,7 @@ yearSlider.addEventListener('input', function() {
     selectedYear = +this.value;
     yearValue.textContent = selectedYear;
     updateVisualization();
-    updateHighBudgetMovieTable();
+    updateHighBudgetScatter();
 });
 
 ratingSlider.addEventListener('input', function() {
@@ -198,7 +203,7 @@ resetBtn.addEventListener('click', function() {
     processMovieData();
     updateVisualization();
     updateLineChart();
-    updateHighBudgetMovieTable();
+    updateHighBudgetScatter();
     
     // Reset scroll position
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -467,7 +472,7 @@ function processMovieData() {
             movieCountsByYear[year][country].ratingCount++;
         }
     }
-    updateHighBudgetMovieTable();
+    updateHighBudgetScatter();
 }
 
 // Create the map visualization
@@ -505,6 +510,7 @@ function createMap() {
         });
     
     svg.call(zoom);
+    
     
     // Draw countries
     g.selectAll("path")
@@ -1451,16 +1457,16 @@ function toUSD(moneyStr) {
 // the function to format a number into a short string
 function fmtMoney(n) {
     // if it's a billion or more, 
-    if (n >= 1000000000) {
+    if (Math.abs(n) >= 1000000000) {
         // return shortenend num w/ B at end, like 1.1B
         return "$" + (n / 1000000000).toFixed(1) + " B";
     }
     // do same for million, 
-    if (n >= 1000000) {
+    if (Math.abs(n) >= 1000000) {
         return "$" + (n / 1000000).toFixed(1) + " M";
     }
     // and thousand
-    if (n >= 1000) {
+    if (Math.abs(n) >= 1000) {
         return "$" + (n / 1000).toFixed(0) + " K";
     }
 
@@ -1485,50 +1491,45 @@ function cleanArray(str) {
     }
 }
 
-// function to update the high budget movie table
-function updateHighBudgetMovieTable() {
-    // stop if there is no data then stop
+// function to draw a scatter plot of budget vs revenue
+function updateHighBudgetScatter() {
+    // stop if the movie data hasn't loaded yet
     if (!combined_movies_data) {
         return;
     }
 
-    // get the selected year and update the label
+    // get the selected year and update the label on the page
     var year = selectedYear;
     document.getElementById("budget-year-label").textContent = year;
 
-    // select the table body and fallback message
-    var tbody = d3.select("#high-budget-table tbody");
-    var fallback = d3.select("#high-budget-fallback");
-
-    // make a new array with only good movies from that year
+    // create an array to hold movie info for the scatter plot
     var movies = [];
     for (var i = 0; i < combined_movies_data.length; i++) {
         var d = combined_movies_data[i];
 
-        // only include movies from the selected year
+        // skip this movie if it's not from the selected year
         if (parseInt(d.Year, 10) !== year) {
             continue;
         }
 
-        // convert the money and ratings
-        var budgetUSD = toUSD(d.budget);
-        var revenueUSD = toUSD(d.grossWorldWWide);
-        var ratingNum = parseFloat(d.Rating);
+        // converty budget and revenue to numbers in usd
+        var budget = toUSD(d.budget);
+        var revenue = toUSD(d.grossWorldWWide);
+        var rating = parseFloat(d.Rating);
 
-        // skip if the budget or ratings are bad
-        if (budgetUSD <= 0 || isNaN(ratingNum) || ratingNum <= 0) {
+        // skip movied with missing/invalid numbers
+        if (budget <= 0 || revenue <= 0 || isNaN(rating)) {
             continue;
         }
 
-        // add cleaned up movie data to the array
+        // save cleaned up movies for later
         movies.push({
-            id: d.imdbID || (d.Title + year + i),
             Title: d.Title,
-            Country: (d.countries_origin || "").replace(/[\[\]']+/g, ""),
-            Rating: ratingNum.toFixed(1),
-            BudgetUSD: budgetUSD,
-            RevenueUSD: revenueUSD,
-            Description: d.description || "",
+            BudgetUSD: budget,
+            RevenueUSD: revenue,
+            Rating: rating.toFixed(1),
+            Country: (d.countries_origin ? d.countries_origin : "").replace(/[\[\]']+/g, ""),
+            Description: d.description ? d.description : "",
             Stars: cleanArray(d.stars),
             Writers: cleanArray(d.writers),
             Directors: cleanArray(d.directors),
@@ -1537,148 +1538,202 @@ function updateHighBudgetMovieTable() {
         });
     }
 
-
-    // sort the movies by budget, only keep to 25%
+    // sort movies by biggest mudget and keep only top 25
     movies.sort(function(a, b) {
         return b.BudgetUSD - a.BudgetUSD;
     });
-    movies = movies.slice(0, Math.floor(movies.length * 0.25));
+    movies = movies.slice(0, 25);
 
-    // if there are no movies to show, then stop
-    if (movies.length === 0) {
-        tbody.html("");
-        fallback.style("display", "block");
-        return;
+    // set up the chart container size
+    var container = document.getElementById("scatter-container");
+    var fullWidth = container.clientWidth;
+    var margin = { top: 40, right: 40, bottom: 60, left: 80 };
+    var width = fullWidth - margin.left - margin.right;
+    var height = 500 - margin.top - margin.bottom;
+
+    // only set up the chart once
+    if (!scatterSvg) {
+        // make the main svg element 
+        scatterSvg = d3.select("#scatter-plot")
+            .attr("width", fullWidth)
+            .attr("height", 500);
+
+        // add a group to hold all chart elements, with padding
+        scatterView = scatterSvg.append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        // add white background
+        scatterView.append("rect")
+            .attr("class", "bg")
+            .attr("fill", "white")
+            .attr("width", width)
+            .attr("height", height);
+
+        // create groups for dots/axes
+        dotsScatter = scatterView.append("g").attr("class", "dots");
+        xAxisScatterG = scatterView.append("g").attr("class", "x-axis");
+        yAxisScatterG = scatterView.append("g").attr("class", "y-axis");
+
+        // add x axis label
+        scatterView.append("text")
+            .attr("class", "x-label")
+            .attr("text-anchor", "middle")
+            .attr("y", height + 45)
+            .style("font-size", "14px")
+            .style("fill", "#495057")
+            .text("Budget (USD)");
+
+        // add y axis label
+        scatterView.append("text")
+            .attr("class", "y-axis-label")
+            .attr("text-anchor", "middle")
+            .attr("transform", "rotate(-90)")
+            .attr("x", -height / 2)
+            .attr("y", -68)
+            .style("font-size", "14px")
+            .style("fill", "#495057");
+
+        // set up zooming for chart
+        scatterZoom = d3.zoom()
+            .scaleExtent([0.5, 10])
+            .translateExtent([[-width, -height], [2 * width, 2 * height]])
+            .on("zoom", zoomed);
+
+        // enable the zoom
+        scatterSvg.call(scatterZoom);
     }
 
-    // hide the message
-    fallback.style("display", "none");
+    // update chart size if needed
+    scatterSvg.attr("width", fullWidth).attr("height", 500);
+    scatterView.select(".bg").attr("width", width).attr("height", height);
 
-    // sort the movies based on the column the user clicked
-    movies.sort(function(a, b) {
-        var cmp = 0;
-        if (a[currentSortKey] < b[currentSortKey]) {
-            cmp = -1;
-        } else if (a[currentSortKey] > b[currentSortKey]) {
-            cmp = 1;
+    // set up x axis scale to use movie budgets using scaleLinear
+    xScatter = d3.scaleLinear()
+        .domain([0, d3.max(movies, function(d) { return d.BudgetUSD; }) * 1.1])
+        .range([0, width])
+        .nice();
+
+    // decide what to show on y axis, either revenue or ratio
+    var yValue = function(d) {
+        if (showProfitRatio) {
+            return d.BudgetUSD > 0 ? d.RevenueUSD / d.BudgetUSD : 0;
+        } else {
+            return d.RevenueUSD;
         }
-        return currentAscending ? cmp : -cmp;
-    });
+    };
 
-    // connect the movie data to table rows
-    var rows = tbody.selectAll("tr")
-        .data(movies, function(d) {
-            return d.id;
-    });
+    // set up the y axis scale using scaleLinear
+    yScatter = d3.scaleLinear()
+        .domain([0, d3.max(movies, function(d) { return yValue(d); }) * 1.1])
+        .range([height, 0])
+        .nice();
 
-    // remove old rows
-    rows.exit()
-        .transition()
-        .duration(300)
-        .style("opacity", 0)
+    // axis formating 
+    var xAxis = d3.axisBottom(xScatter).tickFormat(fmtMoney);
+    var yAxis;
+    if (showProfitRatio) {
+        yAxis = d3.axisLeft(yScatter).ticks(6);
+        } else {
+        yAxis = d3.axisLeft(yScatter).tickFormat(fmtMoney);
+    }
+    
+    // draw x and y axis
+    xAxisScatterG
+        .attr("transform", "translate(0," + height + ")")
+        .transition().duration(500)
+        .call(xAxis);
+    yAxisScatterG
+        .transition().duration(500)
+        .call(yAxis);
+
+    // update the label potition/text
+    scatterView.select(".x-label").attr("x", width / 2).attr("y", height + 45);
+    scatterView.select(".y-axis-label").text(showProfitRatio ? "Revenue ÷ Budget" : "Revenue (USD)");
+
+    // set the movie data to the dots in the chart
+    var dots = dotsScatter.selectAll("circle").data(movies, function(d) { return d.Title; });
+
+    // remove old dots
+    dots.exit()
+        .transition().duration(300)
+        .attr("r", 0)
         .remove();
 
-    // add new rows to the table 
-    var rowsEnter = rows.enter().append("tr")
-        .style("opacity", 0)
+    // add new dots for new data
+    var dotsEnter = dots.enter()
+        .append("circle")
+        .attr("r", 0)
+        .attr("fill", "#3498db")
+        .attr("stroke", "#fff")
+        .attr("stroke-width", 1.5)
         .on("mouseover", function(d) {
-            // show tooltip when hover over
-            var event = d3.event;
-            var tooltip = d3.select("#movie-tooltip");
-
-            // set the html content of the tooltip box when hover over
-            tooltip.html(
-            // title of the movie in bold
-            "<strong>" + d.Title + "</strong><br>" +
-            // country movie was made
-            "<div><strong>Country:</strong> " + (d.Country || "N/A") + "</div>" +
-            // the imdb rating
-            "<div><strong>Rating:</strong> " + d.Rating + "</div>" +
-            // the budget, in usd format
-            "<div><strong>Budget:</strong> " + fmtMoney(d.BudgetUSD) + "</div>" +
-            // revenue, or NA if not in data set
-            "<div><strong>Revenue:</strong> " + (d.RevenueUSD > 0 ? fmtMoney(d.RevenueUSD) : "N/A") + "</div>" +
-            "<hr>" +
-            // the movie plot/description
-            "<div><strong>Plot:</strong> " + (d.Description || "No summary available") + "</div>" +
-            // main actors or cast, directors, writers, ect
-            "<div><strong>Cast:</strong> " + (d.Stars || "N/A") + "</div>" +
-            "<div><strong>Directors:</strong> " + (d.Directors || "N/A") + "</div>" +
-            "<div><strong>Writers:</strong> " + (d.Writers || "N/A") + "</div>" +
-            "<div><strong>Genres:</strong> " + (d.Genres || "N/A") + "</div>" +
-            "<div><strong>Languages:</strong> " + (d.Languages || "N/A") + "</div>"
+            // show tooltip when mouse hover overs a dot
+            const event = d3.event;
+            d3.select("#movie-tooltip")
+            .html(
+                "<strong>" + d.Title + "</strong><br>" +
+                "<div><strong>Country:</strong> " + (d.Country || "N/A") + "</div>" +
+                "<div><strong>Rating:</strong> " + d.Rating + "</div>" +
+                "<div><strong>Budget:</strong> " + fmtMoney(d.BudgetUSD) + "</div>" +
+                "<div><strong>Revenue:</strong> " + fmtMoney(d.RevenueUSD) + "</div>" +
+                (showProfitRatio ? "<div><strong>Revenue ÷ Budget:</strong> " + (d.RevenueUSD / d.BudgetUSD).toFixed(2) + "</div>" : "")
             )
             .style("left", (event.pageX + 12) + "px")
             .style("top", (event.pageY + 12) + "px")
             .style("opacity", 0.95);
         })
         .on("mousemove", function() {
-        // move tooltip as mouse moves
+            // move tooltip with the mosue
             var event = d3.event;
             d3.select("#movie-tooltip")
             .style("left", (event.pageX + 12) + "px")
             .style("top", (event.pageY + 12) + "px");
         })
         .on("mouseout", function() {
-            // hide tooltip when mouse leaves
+            // hide the tooltip when the mouse leaves dot
             d3.select("#movie-tooltip").style("opacity", 0);
         });
 
-    // add table for each column
-    rowsEnter.append("td").attr("class", "col-title");
-    rowsEnter.append("td").attr("class", "col-country");
-    rowsEnter.append("td").attr("class", "col-rating");
-    rowsEnter.append("td").attr("class", "col-budget");
-    rowsEnter.append("td").attr("class", "col-revenue");
+    // merge new and existign dots, animate
+    dots.merge(dotsEnter)
+        .transition().duration(500)
+        .attr("cx", function(d) { return xScatter(d.BudgetUSD); })
+        .attr("cy", function(d) { return yScatter(yValue(d)); })
+        .attr("r", 6);
 
-    // update the table cells with movie info
-    var rowsMerge = rowsEnter.merge(rows);
+        // helper function that handles zooming in and out 
+        function zoomed() {
+            var t = d3.event.transform;
+            var zx = t.rescaleX(xScatter);
+            var zy = t.rescaleY(yScatter);
 
-    rowsMerge.select(".col-title").text(function(d) {
-        return d.Title;
-    });
-    rowsMerge.order();  
-    rowsMerge.select(".col-country").text(function(d) {
-        return d.Country;
-    });
-    rowsMerge.select(".col-rating").text(function(d) {
-        return d.Rating;
-    });
-    rowsMerge.select(".col-budget").text(function(d) {
-        return fmtMoney(d.BudgetUSD);
-    });
-    rowsMerge.select(".col-revenue").text(function(d) {
-    if (d.RevenueUSD > 0) {
-        return fmtMoney(d.RevenueUSD);
-    } else {
-        return "N/A";
-    }
-    });
+            // update axes and dot positions while zooming
+            xAxisScatterG.call(xAxis.scale(zx));
+            yAxisScatterG.call(yAxis.scale(zy));
 
-    /* fade in rows */
-    rowsMerge.transition()
-        .duration(300)
-        .style("opacity", 1);
+            dotsScatter.selectAll("circle")
+                .attr("cx", function(d) { return zx(d.BudgetUSD); })
+                .attr("cy", function(d) { return zy(yValue(d)); });
+        }
 }
 
-/* when the user clicks a column header, sort that column */
-d3.selectAll("#high-budget-table thead th")
-  .style("cursor", "pointer")
-  .on("click", function() {
-    var key = d3.select(this).attr("data-key");
-    if (key) {
-      if (currentSortKey === key) {
-        currentAscending = !currentAscending;
-      } else {
-        currentSortKey = key;
-        currentAscending = true;
-      }
-      updateHighBudgetMovieTable();
-    }
-  });
 
-/* call once the page loads */
-updateHighBudgetMovieTable();
+function resetScatterZoom() {
+    const svg = d3.select("#scatter-plot");
+    if (!svg || !scatterZoom) return;
+
+    svg.transition()
+        .duration(750)
+        .call(scatterZoom.transform, d3.zoomIdentity);
+}
+
+document.getElementById("scatter-reset-btn").addEventListener("click", resetScatterZoom);
+document.getElementById("toggle-profit-ratio").addEventListener("change", function (e) {
+    showProfitRatio = e.target.checked;
+    updateHighBudgetScatter(); // re-render chart with new mode
+});
+
+
 
 // Handle window resize
 window.addEventListener('resize', debounce(() => {
@@ -1731,6 +1786,7 @@ window.addEventListener('resize', debounce(() => {
         
         // Update line and dots
         updateLineChart();
+        updateHighBudgetScatter();
     }
 }, 250));
 
