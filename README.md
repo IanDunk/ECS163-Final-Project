@@ -16,3 +16,6 @@ Open the terminal in Visual Studio Code
 Type: python3 -m http.server 8000
 Now open your internet browser
 Type: http://localhost:8000/index.html
+
+# Disclaimer
+There has been some use of AI for assistance in coding
