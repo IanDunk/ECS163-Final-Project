@@ -18,4 +18,4 @@ Now open your internet browser
 Type: http://localhost:8000/index.html
 
 # Disclaimer
-There has been some use of AI for assistance in coding
+AI was used for this project, with all code being either changed significantly or written from scratch, as complying with the syllabus.
